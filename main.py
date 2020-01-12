@@ -9,16 +9,11 @@ import logging
 import re
 from logging.handlers import TimedRotatingFileHandler
 
-from apis import guest_controller
-
 
 def db_job():
     curtime = int(time.time())
     with app.app_context():
-        app.logger.info('Run scheduling task to update status field at: ' + str(curtime))
-        response = guest_controller.update_expired_status()
-        app.logger.debug('Task result: ' + str(response))
-        app.logger.info('Task completed\n')
+        pass
 
 
 cron_job = BackgroundScheduler(daemon=True)
@@ -43,7 +38,7 @@ app.logger.addHandler(handler)
 
 @manager.command
 def run():
-    app.run(host='0.0.0.0', port=5061)
+    app.run(host='0.0.0.0', port=5000)
 
 
 @manager.command

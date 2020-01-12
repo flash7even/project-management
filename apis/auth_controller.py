@@ -10,7 +10,6 @@ from functools import wraps
 from flask import request, current_app as app
 from flask_restplus import Resource, Namespace
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_refresh_token_required, get_jwt_identity, jwt_required, get_raw_jwt, verify_jwt_in_request, get_jwt_claims
-from apis.flask_redis import redis_store
 from flask_jwt_extended.exceptions import *
 from jwt.exceptions import *
 
@@ -210,31 +209,4 @@ class Refresh(Resource):
                 return {"message": "unauthorized"}, 401
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return response, 500
-
-
-@api.route('/logout/at')
-class Logout(Resource):
-
-    @jwt_required
-    def post(self):
-        app.logger.info("logout at called")
-        jti = get_raw_jwt()['jti']
-        jti = redis_store.redis_prefix_jwt_token + jti
-        redis_store.connection.set(jti, 1 , timedelta(minutes=app.config['JWT_ACCESS_TOKEN_EXPIRES_MINUTES']))
-        app.logger.info("logout access successful")
-        return {"message": "Access token revoked"}, 200
-
-
-@api.route('/logout/rt')
-class Logout(Resource):
-
-    @jwt_refresh_token_required
-    def post(self):
-        app.logger.info("logout rt called")
-        jti = get_raw_jwt()['jti']
-        jti = redis_store.redis_prefix_jwt_token + jti
-        redis_store.connection.set(jti, 1 , timedelta(minutes=app.config['JWT_REFRESH_TOKEN_EXPIRES_MINUTES']))
-        app.logger.info("logout refresh successful")
-        return {"msg": "Refresh token revoked"}, 200
-
 

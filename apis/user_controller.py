@@ -1,16 +1,8 @@
-import base64
-import json
-import random
-import time
-from datetime import timedelta
 from hashlib import md5
-from random import random
-from PIL import Image
 
 import requests
 from flask import request, current_app as app
 from flask_jwt_extended import get_jwt_identity
-from flask_jwt_extended import jwt_required
 from flask_jwt_extended.exceptions import *
 from flask_restplus import Namespace, Resource
 from jwt.exceptions import *
@@ -19,47 +11,11 @@ from .auth_controller import access_required
 
 api = Namespace('user', description='user related services')
 
-_local_recognize_url_endpoint = "/recognize/v2"
-
 _http_headers = {'Content-Type': 'application/json'}
-_es_index = 'tardy_users'
+_es_index = 'pms_users'
 _es_type = 'user'
-_es_role_index = 'tardy_user_role_lookup'
-_es_role_type = 'role'
-_es_index_device = 'tardy_devices'
-_es_type_device = 'device'
-_es_index_device_door = 'tardy_door_device_control'
-_es_type_device_door = 'control'
-_es_index_user_door = 'tardy_user_door_access'
-_es_type_user_door = 'access'
-_es_index_access_log = 'tardy_access_control_log'
-_es_type_access_log = 'log'
-_es_index_booth = 'tardy_booths'
-_es_type_booth = 'booth'
-_es_door_index = 'tardy_doors'
-_es_door_type = 'door'
-
 _es_size = 100
-keywords = ["internal_id", "status"]
-match_mandatory_fields = ['image_data', 'threshold', 'ip_address']
-_es_src_filter = ["fullname"]
-
-device_type_entry_door = 'entry_door'
-device_type_exit_door = 'exit_door'
-device_type_indoor = 'indoor'
-device_type_outdoor = 'outdoor'
-
-entry = 'entry'
-exit = 'exit'
-active = "active"
-delete = "delete"
-pending = 'pending'
-unknown = 'unknown'
-found = 'found'
-unauthorized = 'unauthorized'
-authorized = 'authorized'
 user_hash_fields = ['fullname', 'phone']
-image_rect_factor = 0.05
 
 
 @api.errorhandler(NoAuthorizationError)
@@ -118,23 +74,6 @@ def handle_failed_user_claims_verification(e):
     return {'message': 'User claims verification failed'}, 400
 
 
-def get_user_details(user_id):
-    app.logger.info('get_user_details method called')
-    rs = requests.session()
-    search_url = 'http://{}/{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type, user_id)
-    response = rs.get(url=search_url, headers=_http_headers).json()
-    if 'found' in response:
-        if response['found']:
-            app.logger.info('get_user_details method completed')
-            return response['_source']
-    else:
-        app.logger.error('Elasticsearch down, response: ' + str(response))
-        return response
-
-    app.logger.info('No user found')
-    return {}
-
-
 @api.route('/<string:user_id>')
 class User(Resource):
 
@@ -158,9 +97,6 @@ class User(Resource):
             else:
                 app.logger.warning('no user found')
                 return {"message": 'no user found'}, 200
-            app.logger.error('Elasticsearch down, response: ' + str(response))
-            return {'message': str(response)}, 500
-
         except Exception as e:
             app.logger.error('Elasticsearch down, response: ' + str(response))
             return {'message': str(e)}, 500
@@ -169,21 +105,17 @@ class User(Resource):
     @api.doc('update user by id')
     def put(self, user_id):
         app.logger.info("User update service called")
-        ignore_fields = ['username', 'password', 'user_access']
-
-        app.logger.info('Update user API called, id: ' + str(user_id))
-
+        ignore_fields = ['username', 'password']
         rs = requests.session()
-        user_data = request.get_json()
-
+        js_data = request.get_json()
         search_url = 'http://{}/{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type, user_id)
         response = rs.get(url=search_url, headers=_http_headers).json()
         if 'found' in response:
             if response['found']:
                 user = response['_source']
-                for key, value in user.items():
-                    if key not in ignore_fields and key in user_data and user_data[key] != value:
-                        user[key] = user_data[key]
+                for key in js_data:
+                    if key not in ignore_fields:
+                        user[key] = js_data[key]
                 response = rs.put(url=search_url, json=user, headers=_http_headers).json()
                 if 'result' in response:
                     app.logger.info("User update service completed")
@@ -264,10 +196,7 @@ class SearchUser(Resource):
         query_json = {'query': {'bool': {'must': []}}}
 
         for k in param:
-            if k in keywords:
-                query_json['query']['bool']['must'].append({'term': {k: param[k]}})
-            else:
-                query_json['query']['bool']['must'].append({'match': {k: param[k]}})
+            query_json['query']['bool']['must'].append({'match': {k: param[k]}})
 
         query_json['from'] = page * _es_size
         query_json['size'] = _es_size
@@ -275,12 +204,12 @@ class SearchUser(Resource):
 
         response = rs.post(url=search_url, json=query_json, headers=_http_headers).json()
         if 'hits' in response:
-            data = []
+            user_list = []
             for rec in response['hits']['hits']:
-                tdata = rec['_source']
-                tdata['id'] = rec['_id']
-                data.append(tdata)
+                data = rec['_source']
+                data['id'] = rec['_id']
+                user_list.append(data)
             app.logger.info("User search service completed")
-            return data, 200
+            return user_list, 200
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return {'message': 'internal server error'}, 500

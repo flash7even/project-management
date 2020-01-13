@@ -14,9 +14,10 @@ api = Namespace('project', description='Namespace for project service')
 
 _http_headers = {'Content-Type': 'application/json'}
 
-_es_index = 'pc_projects'
+_es_index = 'pms_projects'
 _es_type = 'project'
 _es_size = 100
+
 
 @api.errorhandler(NoAuthorizationError)
 def handle_auth_error(e):
@@ -74,35 +75,35 @@ def handle_failed_user_claims_verification(e):
     return {'message': 'User claims verification failed'}, 400
 
 
-@api.route('/<string:device_id>')
-class DeviceByID(Resource):
+@api.route('/<string:project_id>')
+class ProjectByID(Resource):
 
-    @access_required(access='CREATE_DEVICE DELETE_DEVICE UPDATE_DEVICE SEARCH_DEVICE VIEW_DEVICE')
-    @api.doc('get device details by id')
-    def get(self, device_id):
-        app.logger.info('Get device_details method called')
+    @access_required(access='CREATE_PROJECT DELETE_PROJECT UPDATE_PROJECT SEARCH_PROJECT VIEW_PROJECT')
+    @api.doc('get project details by id')
+    def get(self, project_id):
+        app.logger.info('Get project_details method called')
         rs = requests.session()
-        search_url = 'http://{}/{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type, device_id)
+        search_url = 'http://{}/{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type, project_id)
         response = rs.get(url=search_url, headers=_http_headers).json()
         if 'found' in response:
             if response['found']:
                 data = response['_source']
                 data['id'] = response['_id']
-                app.logger.info('Get device_details method completed')
+                app.logger.info('Get project_details method completed')
                 return data, 200
-            app.logger.warning('Device not found')
+            app.logger.warning('Project not found')
             return {'found': response['found']}, 404
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return response, 500
 
-    @access_required(access='CREATE_DEVICE DELETE_DEVICE UPDATE_DEVICE')
-    @api.doc('update device by id')
-    def put(self, device_id):
-        app.logger.info('Update device_details method called')
+    @access_required(access='CREATE_PROJECT DELETE_PROJECT UPDATE_PROJECT')
+    @api.doc('update project by id')
+    def put(self, project_id):
+        app.logger.info('Update project_details method called')
         current_user = get_jwt_identity().get('id')
         rs = requests.session()
         post_data = request.get_json()
-        search_url = 'http://{}/{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type, device_id)
+        search_url = 'http://{}/{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type, project_id)
         response = rs.get(url=search_url, headers=_http_headers).json()
         if 'found' in response:
             if response['found']:
@@ -113,19 +114,19 @@ class DeviceByID(Resource):
                 data['updated_at'] = int(time.time())
                 response = rs.put(url=search_url, json=data, headers=_http_headers).json()
                 if 'result' in response:
-                    app.logger.info('Update device_details method completed')
+                    app.logger.info('Update project_details method completed')
                     return response['result'], 200
-            app.logger.warning('Device not found')
+            app.logger.warning('Project not found')
             return {'message': 'not found'}, 404
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return response, 500
 
-    @access_required(access='DELETE_DEVICE')
-    @api.doc('delete device by id')
-    def delete(self, device_id):
-        app.logger.info('Delete device_details method called')
+    @access_required(access='DELETE_PROJECT')
+    @api.doc('delete project by id')
+    def delete(self, project_id):
+        app.logger.info('Delete project_details method called')
         rs = requests.session()
-        search_url = 'http://{}/{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type, device_id)
+        search_url = 'http://{}/{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type, project_id)
         response = rs.delete(url=search_url, headers=_http_headers).json()
         print('response: ', response)
         if 'found' in response:
@@ -135,30 +136,15 @@ class DeviceByID(Resource):
 
 
 @api.route('/')
-class CreateDevice(Resource):
+class CreateProject(Resource):
 
-    @access_required(access='CREATE_DEVICE DELETE_DEVICE')
-    @api.doc('create new device')
+    @access_required(access='CREATE_PROJECT DELETE_PROJECT')
+    @api.doc('create new project')
     def post(self):
-        app.logger.info('Create device method called')
+        app.logger.info('Create project method called')
         current_user = get_jwt_identity().get('id')
         rs = requests.session()
         data = request.get_json()
-        mandatory_fields = []
-
-        for field in mandatory_fields:
-            if field not in data:
-                app.logger.warning('required fields are missing')
-                return {"message": "required fields are missing"}, 400
-
-        query_json = {'query': {'bool': {'must': [{'term': {'ip_address': data['ip_address']}}]}}}
-        query_json['size'] = 1
-        search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_index, _es_type)
-        response = requests.session().post(url=search_url, json=query_json, headers=_http_headers).json()
-
-        if 'hits' in response:
-            if len(response['hits']['hits']) > 0:
-                return {'message': 'ip_address is already assigned to a device'}, 400
 
         data['created_by'] = current_user
         data['created_at'] = int(time.time())
@@ -169,7 +155,7 @@ class CreateDevice(Resource):
 
         if 'created' in response:
             if response['created']:
-                app.logger.info('Create device method completed')
+                app.logger.info('Create project method completed')
                 return response['_id'], 201
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return response, 500
@@ -177,18 +163,15 @@ class CreateDevice(Resource):
 
 @api.route('/search', defaults={'page': 0})
 @api.route('/search/<int:page>')
-class SearchDevice(Resource):
+class SearchProject(Resource):
 
-    @access_required(access='CREATE_DEVICE DELETE_DEVICE UPDATE_DEVICE SEARCH_DEVICE VIEW_DEVICE')
+    @access_required(access='CREATE_PROJECT DELETE_PROJECT UPDATE_PROJECT SEARCH_PROJECT VIEW_PROJECT')
     @api.doc('search door based on post parameters')
     def post(self, page=0):
-        app.logger.info('Search device method called')
+        app.logger.info('Search project method called')
         param = request.get_json()
-
         query_json = {'query': {'match_all': {}}}
-
         must = []
-
         for fields in param:
             must.append({'match': {fields: param[fields]}})
 
@@ -201,12 +184,12 @@ class SearchDevice(Resource):
 
         response = requests.session().post(url=search_url, json=query_json, headers=_http_headers).json()
         if 'hits' in response:
-            data = []
+            project_list = []
             for hit in response['hits']['hits']:
-                device = hit['_source']
-                device['id'] = hit['_id']
-                data.append(device)
-            app.logger.info('Search device method completed')
-            return data, 200
+                project = hit['_source']
+                project['id'] = hit['_id']
+                project_list.append(project)
+            app.logger.info('Search project method completed')
+            return project_list, 200
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return {'message': 'internal server error'}, 500

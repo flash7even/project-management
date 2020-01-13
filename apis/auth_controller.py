@@ -1,8 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*
-
-"""
-"""
 from hashlib import md5
 from datetime import timedelta
 import requests
@@ -17,9 +12,9 @@ api = Namespace('auth', description='auth related services')
 _http_headers = {'Content-Type': 'application/json'}
 _source = ['username', 'user_role', 'user_access', 'fullname']
 
-_es_role_index = 'tardy_user_role_lookup'
+_es_role_index = 'pms_user_role_lookup'
 _es_role_type = 'role'
-_es_index = 'tardy_users'
+_es_index = 'pms_users'
 _es_type = 'user'
 
 
@@ -124,7 +119,6 @@ def generate_access_string_from_roles(user_role):
 @api.route('/login')
 class Login(Resource):
 
-
     def post(self):
         rs = requests.session()
         auth_data = request.get_json()
@@ -160,7 +154,6 @@ class Login(Resource):
                 jwt_data['username'] = data['username']
                 jwt_data['fullname'] = data['fullname']
                 jwt_data['user_role'] = data['user_role']
-                # jwt_data['user_access'] = data['user_access']
                 data['access_token'] = create_access_token(identity=jwt_data)
                 data['refresh_token'] = create_refresh_token(identity=jwt_data)
                 app.logger.info("login successful")
@@ -199,7 +192,6 @@ class Refresh(Resource):
                 jwt_data['username'] = data['username']
                 jwt_data['fullname'] = data['fullname']
                 jwt_data['user_role'] = data['user_role']
-                # jwt_data['user_access'] = data['user_access']
                 data['access_token'] = create_access_token(identity=jwt_data)
                 data['refresh_token'] = create_refresh_token(identity=jwt_data)
                 app.logger.info("refresh successful")

@@ -39,6 +39,9 @@ PUT pms_users/_mapping/user
     "role": {
         "type": "text"
     },
+    "user_role": {
+        "type": "text"
+    },
     "user_type": {
         "type": "text"
     },
@@ -288,4 +291,99 @@ PUT pms_method_access_lookup/_mapping/access
       "type": "text"
     }
   }
+}
+
+
+#### User Role With Access
+
+{
+  "role_name": "admin",
+  "role_id": "0000",
+  "role_level": "1",
+  "method_access": [
+    {
+      "access_code": "ALL",
+      "access_name": "ALL"
+    },
+    {
+      "access_code": "DELETE_BILL",
+      "access_name": "Delete Bill"
+    },
+    {
+      "access_code": "DELETE_PROJECT",
+      "access_name": "Delete Project"
+    },
+    {
+      "access_code": "DELETE_LOOKUP",
+      "access_name": "Delete Lookup"
+    },
+    {
+      "access_code": "DELETE_USER",
+      "access_name": "Delete User"
+    },
+    {
+      "access_code": "SEARCH_BILL",
+      "access_name": "Search Bill Entry"
+    },
+    {
+      "access_code": "SEARCH_USER",
+      "access_name": "Search User Entry"
+    },
+    {
+      "access_code": "SEARCH_PROJECT",
+      "access_name": "Search Project Entry"
+    },
+    {
+      "access_code": "SEARCH_LOOKUP",
+      "access_name": "Search Lookup Entry"
+    },
+    {
+      "access_code": "CREATE_LOOKUP",
+      "access_name": "Create Lookup Entry"
+    },
+    {
+      "access_code": "CREATE_USER",
+      "access_name": "Create User"
+    },
+    {
+      "access_code": "CREATE_BILL",
+      "access_name": "Create Bill"
+    },
+    {
+      "access_code": "CREATE_PROJECT",
+      "access_name": "Create Project"
+    },
+    {
+      "access_code": "UPDATE_USER",
+      "access_name": "Update User Details"
+    },
+    {
+      "access_code": "UPDATE_BILL",
+      "access_name": "Update Bill Details"
+    },
+    {
+      "access_code": "UPDATE_PROJECT",
+      "access_name": "Update Project Details"
+    },
+    {
+      "access_code": "UPDATE_LOOKUP",
+      "access_name": "Update Lookup Details"
+    },
+    {
+      "access_code": "VIEW_USER",
+      "access_name": "View User Details"
+    },
+    {
+      "access_code": "VIEW_PROJECT",
+      "access_name": "View Project Details"
+    },
+    {
+      "access_code": "VIEW_BILL",
+      "access_name": "View Bill Details"
+    },
+    {
+      "access_code": "VIEW_LOOKUP",
+      "access_name": "View Lookup Details"
+    }
+  ]
 }

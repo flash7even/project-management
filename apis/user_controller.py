@@ -149,7 +149,7 @@ class CreateUser(Resource):
                 raise KeyError('Mandatory field missing')
         return json_data
 
-    @access_required(access='DELETE_USER CREATE_USER')
+    # @access_required(access='DELETE_USER CREATE_USER')
     @api.doc('create new user')
     def post(self):
         app.logger.info('Create user API called')

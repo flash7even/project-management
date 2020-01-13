@@ -12,10 +12,11 @@ api = Namespace('access', description='Namespace for method access service')
 
 _http_headers = {'Content-Type': 'application/json'}
 
-_es_index = 'tardy_method_access_lookup'
+_es_index = 'pms_method_access_lookup'
 _es_type = 'access'
 _es_size = 100
 mandatory_fields = ["access_code", "access_name", "access_group"]
+
 
 @api.errorhandler(NoAuthorizationError)
 def handle_auth_error(e):

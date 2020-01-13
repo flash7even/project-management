@@ -15,9 +15,9 @@ api = Namespace('role', description='Namespace for role service')
 
 _http_headers = {'Content-Type': 'application/json'}
 
-_es_index = 'tardy_user_role_lookup'
+_es_index = 'pms_user_role_lookup'
 _es_type = 'role'
-_es_access_index = 'tardy_method_access_lookup'
+_es_access_index = 'pms_method_access_lookup'
 _es_access_type = 'access'
 _es_size = 100
 mandatory_fields = ["role_name", "role_id", "role_level", "method_access"]

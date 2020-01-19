@@ -4,7 +4,7 @@ import time
 import requests
 from flask import current_app as app
 from flask import request
-from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_jwt_extended.exceptions import *
 from flask_restplus import Namespace, Resource
 from jwt.exceptions import *
@@ -20,7 +20,16 @@ _es_type = 'role'
 _es_access_index = 'pms_method_access_lookup'
 _es_access_type = 'access'
 _es_size = 100
-mandatory_fields = ["role_name", "role_id", "role_level", "method_access"]
+_es_size_max = 500
+
+mandatory_fields = ["role_name", "role_id", "role_level"]
+
+VIEW = 'VIEW'
+SEARCH = 'SEARCH'
+CREATE = 'CREATE'
+DELETE = 'DELETE'
+ADMIN = 'ADMIN'
+
 
 @api.errorhandler(NoAuthorizationError)
 def handle_auth_error(e):
@@ -96,6 +105,27 @@ def convert_data(data):
     return data_js
 
 
+def get_customized_access(role_name):
+    app.logger.info('get_customized_access method called')
+    query_json = {'query': {'match_all': {}}, 'size': _es_size_max}
+    search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_access_index, _es_access_type)
+    response = requests.session().post(url=search_url, json=query_json, headers=_http_headers).json()
+    access_list = []
+    if 'hits' in response:
+        for hit in response['hits']['hits']:
+            data = hit['_source']
+            if role_name != ADMIN and data['access_code'].find(role_name) == -1:
+                continue
+            access_js = {
+                'access_code': data['access_code'],
+                'access_name': data['access_name']
+            }
+            access_list.append(access_js)
+    app.logger.info('get_customized_access method completed')
+    app.logger.debug('access_list: ' + str(access_list))
+    return access_list
+
+
 @api.route('/<string:role_id>')
 class RoleByID(Resource):
 
@@ -169,6 +199,7 @@ class CreateRole(Resource):
         current_user = get_jwt_identity().get('id')
         rs = requests.session()
         data = request.get_json()
+        role_name = data.get('role_name', ADMIN)
 
         for field in mandatory_fields:
             if field not in data:
@@ -179,7 +210,10 @@ class CreateRole(Resource):
         data['created_at'] = int(time.time())
         data['updated_by'] = current_user
         data['updated_at'] = int(time.time())
-        data['method_access'] = convert_data(data['method_access'])
+        if 'method_access' not in data:
+            data['method_access'] = get_customized_access(role_name)
+        else:
+            data['method_access'] = convert_data(data['method_access'])
         post_url = 'http://{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type)
         response = rs.post(url=post_url, json=data, headers=_http_headers).json()
 
@@ -224,65 +258,5 @@ class SearchRole(Resource):
                 data.append(user)
             app.logger.info('Search role on post parameter API completed')
             return data, 200
-        app.logger.error('Elasticsearch down, response: ' + str(response))
-        return {'message': 'internal server error'}, 500
-
-
-@api.route('/dtsearch')
-class SearchRoleDT(Resource):
-
-    @access_required(access='DELETE_USER CREATE_USER UPDATE_USER SEARCH_USER VIEW_USER')
-    @api.doc('search roles based on query parameters')
-    def get(self):
-        app.logger.info('User role dtsearch service called')
-        param = request.args.to_dict()
-        for key in param:
-            param[key] = param[key].replace('"', '')
-
-        app.logger.debug('query params: ' + str(param))
-
-        pageIndex = 0
-        pageSize = _es_size
-
-        if 'pageIndex' in param:
-            pageIndex = int(param['pageIndex'])
-
-        if 'pageSize' in param:
-            pageSize = int(param['pageSize'])
-
-        should = []
-
-        if 'filter' in param and param['filter']:
-            should.append({'match': {'role_name': param['filter']}})
-            should.append({'term': {'role_id': param['filter']}})
-
-        query = {'bool': {'should': should}}
-
-        if len(should) == 0:
-            query = {'match_all': {}}
-
-        query_json = {'query': query, 'from': pageIndex * pageSize, 'size': pageSize}
-
-        #if 'sortActive' in param:
-        #    query_json['sort'] = [{param['sortActive']: {'order': param['sortOrder']}}]
-
-        app.logger.debug('ES Query: ' + str(json.dumps(query_json)))
-
-        search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_index, _es_type)
-        response = requests.session().post(url=search_url, json=query_json, headers=_http_headers).json()
-
-        if 'hits' in response:
-            data = []
-            for hit in response['hits']['hits']:
-                user = hit['_source']
-                user['id'] = hit['_id']
-                data.append(user)
-            return_data = {
-                'role_list': data,
-                'count': response['hits']['total']
-            }
-            app.logger.info('User role dtsearch service completed')
-            return return_data, 200
-            # return data, 200
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return {'message': 'internal server error'}, 500

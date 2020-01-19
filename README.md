@@ -226,20 +226,11 @@ PUT pms_user_role_lookup/_mapping/role
     "created_by": {
       "type": "keyword"
     },
-    "edited_at": {
+    "updated_at": {
       "type": "long"
     },
-    "edited_by": {
+    "updated_by": {
       "type": "keyword"
-    },
-    "id": {
-      "type": "text",
-      "fields": {
-        "keyword": {
-          "type": "keyword",
-          "ignore_above": 256
-        }
-      }
     },
     "method_access": {
       "type": "nested",
@@ -260,18 +251,6 @@ PUT pms_user_role_lookup/_mapping/role
     },
     "role_name": {
       "type": "text"
-    },
-    "updated_at": {
-      "type": "long"
-    },
-    "updated_by": {
-      "type": "text",
-      "fields": {
-        "keyword": {
-          "type": "keyword",
-          "ignore_above": 256
-        }
-      }
     }
   }
 }

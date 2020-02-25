@@ -73,7 +73,7 @@ PUT pms_users/_mapping/user
 }
 
 
-PUT pms_projects/_mapping/project
+PUT pms_projects/_mapping
 {
   "dynamic": "strict",
   "properties": {
@@ -114,7 +114,7 @@ PUT pms_projects/_mapping/project
 }
 
 
-PUT pms_transactions/_mapping/transaction
+PUT pms_transactions/_mapping
 {
   "dynamic": "strict",
   "properties": {
@@ -128,6 +128,9 @@ PUT pms_transactions/_mapping/transaction
         "type": "keyword"
     },
     "project_id": {
+        "type": "keyword"
+    },
+    "project_name": {
         "type": "keyword"
     },
     "mode_of_payment": {

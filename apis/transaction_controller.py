@@ -10,12 +10,14 @@ from flask_restplus import Namespace, Resource
 from jwt.exceptions import *
 from .auth_controller import access_required
 
+from core.project_services import find_project_list_using_search_params
+
 api = Namespace('transaction', description='Namespace for transaction service')
 
 _http_headers = {'Content-Type': 'application/json'}
 
 _es_index = 'pms_transactions'
-_es_type = 'transaction'
+_es_type = '_doc'
 _es_size = 100
 
 
@@ -79,7 +81,6 @@ def handle_failed_user_claims_verification(e):
 class TransactionByID(Resource):
 
     #@access_required(access='CREATE_TRANSACTION DELETE_TRANSACTION UPDATE_TRANSACTION SEARCH_TRANSACTION VIEW_TRANSACTION')
-    @jwt_required
     @api.doc('get transaction details by id')
     def get(self, transaction_id):
         app.logger.info('Get transaction_details method called')
@@ -98,11 +99,10 @@ class TransactionByID(Resource):
         return response, 500
 
     #@access_required(access='CREATE_TRANSACTION DELETE_TRANSACTION UPDATE_TRANSACTION')
-    @jwt_required
     @api.doc('update transaction by id')
     def put(self, transaction_id):
         app.logger.info('Update transaction_details method called')
-        current_user = get_jwt_identity().get('id')
+        #current_user = get_jwt_identity().get('id')
         rs = requests.session()
         post_data = request.get_json()
         search_url = 'http://{}/{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type, transaction_id)
@@ -112,8 +112,8 @@ class TransactionByID(Resource):
                 data = response['_source']
                 for key, value in post_data.items():
                     data[key] = value
-                data['updated_by'] = current_user
-                data['updated_at'] = int(time.time())
+                #data['updated_by'] = current_user
+                #data['updated_at'] = int(time.time())
                 response = rs.put(url=search_url, json=data, headers=_http_headers).json()
                 if 'result' in response:
                     app.logger.info('Update transaction_details method completed')
@@ -125,13 +125,11 @@ class TransactionByID(Resource):
 
     #@access_required(access='DELETE_TRANSACTION')
     @api.doc('delete transaction by id')
-    @jwt_required
     def delete(self, transaction_id):
         app.logger.info('Delete transaction_details method called')
         rs = requests.session()
         search_url = 'http://{}/{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type, transaction_id)
         response = rs.delete(url=search_url, headers=_http_headers).json()
-        print('response: ', response)
         if 'found' in response:
             return response['result'], 200
         app.logger.error('Elasticsearch down, response: ' + str(response))
@@ -143,24 +141,36 @@ class CreateTransaction(Resource):
 
     #@access_required(access='CREATE_TRANSACTION DELETE_TRANSACTION')
     @api.doc('create new transaction')
-    @jwt_required
     def post(self):
         app.logger.info('Create transaction method called')
-        current_user = get_jwt_identity().get('id')
+        #current_user = get_jwt_identity().get('id')
         rs = requests.session()
         data = request.get_json()
 
-        data['created_by'] = current_user
-        data['created_at'] = int(time.time())
-        data['updated_by'] = current_user
-        data['updated_at'] = int(time.time())
+        mandatory_fields = ['transaction_id', 'amount', 'project_name']
+
+        for mfield in mandatory_fields:
+            if mfield not in data:
+                return {'message': 'mandatory field missing'}, 403
+
+        project_params = {
+            'project_name': data['project_name']
+        }
+
+        project_list = find_project_list_using_search_params(project_params)
+
+        if len(project_list) != 1:
+            return {'message': 'multiple project with same name'}, 403
+
+        project_details = project_list[0]
+        data['project_id'] = project_details['id']
+
         post_url = 'http://{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type)
         response = rs.post(url=post_url, json=data, headers=_http_headers).json()
 
-        if 'created' in response:
-            if response['created']:
-                app.logger.info('Create transaction method completed')
-                return response['_id'], 201
+        if 'result' in response and response['result'] == 'created':
+            app.logger.info('Create transaction method completed')
+            return response['_id'], 201
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return response, 500
 
@@ -171,7 +181,6 @@ class SearchTransaction(Resource):
 
     #@access_required(access='CREATE_TRANSACTION DELETE_TRANSACTION UPDATE_TRANSACTION SEARCH_TRANSACTION VIEW_TRANSACTION')
     @api.doc('search door based on post parameters')
-    @jwt_required
     def post(self, page=0):
         app.logger.info('Search transaction method called')
         param = request.get_json()

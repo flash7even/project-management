@@ -15,7 +15,7 @@ api = Namespace('project', description='Namespace for project service')
 _http_headers = {'Content-Type': 'application/json'}
 
 _es_index = 'pms_projects'
-_es_type = 'project'
+_es_type = '_doc'
 _es_size = 100
 
 
@@ -78,7 +78,7 @@ def handle_failed_user_claims_verification(e):
 @api.route('/<string:project_id>')
 class ProjectByID(Resource):
 
-    @access_required(access='CREATE_PROJECT DELETE_PROJECT UPDATE_PROJECT SEARCH_PROJECT VIEW_PROJECT')
+    #@access_required(access='CREATE_PROJECT DELETE_PROJECT UPDATE_PROJECT SEARCH_PROJECT VIEW_PROJECT')
     @api.doc('get project details by id')
     def get(self, project_id):
         app.logger.info('Get project_details method called')
@@ -96,11 +96,11 @@ class ProjectByID(Resource):
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return response, 500
 
-    @access_required(access='CREATE_PROJECT DELETE_PROJECT UPDATE_PROJECT')
+    #@access_required(access='CREATE_PROJECT DELETE_PROJECT UPDATE_PROJECT')
     @api.doc('update project by id')
     def put(self, project_id):
         app.logger.info('Update project_details method called')
-        current_user = get_jwt_identity().get('id')
+        #current_user = get_jwt_identity().get('id')
         rs = requests.session()
         post_data = request.get_json()
         search_url = 'http://{}/{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type, project_id)
@@ -110,8 +110,8 @@ class ProjectByID(Resource):
                 data = response['_source']
                 for key, value in post_data.items():
                     data[key] = value
-                data['updated_by'] = current_user
-                data['updated_at'] = int(time.time())
+                #data['updated_by'] = current_user
+                #data['updated_at'] = int(time.time())
                 response = rs.put(url=search_url, json=data, headers=_http_headers).json()
                 if 'result' in response:
                     app.logger.info('Update project_details method completed')
@@ -121,7 +121,7 @@ class ProjectByID(Resource):
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return response, 500
 
-    @access_required(access='DELETE_PROJECT')
+    #@access_required(access='DELETE_PROJECT')
     @api.doc('delete project by id')
     def delete(self, project_id):
         app.logger.info('Delete project_details method called')
@@ -138,25 +138,21 @@ class ProjectByID(Resource):
 @api.route('/')
 class CreateProject(Resource):
 
-    @access_required(access='CREATE_PROJECT DELETE_PROJECT')
+    #@access_required(access='CREATE_PROJECT DELETE_PROJECT')
     @api.doc('create new project')
     def post(self):
         app.logger.info('Create project method called')
-        current_user = get_jwt_identity().get('id')
+        #current_user = get_jwt_identity().get('id')
         rs = requests.session()
         data = request.get_json()
 
-        data['created_by'] = current_user
-        data['created_at'] = int(time.time())
-        data['updated_by'] = current_user
-        data['updated_at'] = int(time.time())
         post_url = 'http://{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type)
         response = rs.post(url=post_url, json=data, headers=_http_headers).json()
+        app.logger.debug('ES Response: ' + str(response))
 
-        if 'created' in response:
-            if response['created']:
-                app.logger.info('Create project method completed')
-                return response['_id'], 201
+        if 'result' in response and response['result'] == 'created':
+            app.logger.info('Create project method completed')
+            return response['_id'], 201
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return response, 500
 
@@ -165,7 +161,7 @@ class CreateProject(Resource):
 @api.route('/search/<int:page>')
 class SearchProject(Resource):
 
-    @access_required(access='CREATE_PROJECT DELETE_PROJECT UPDATE_PROJECT SEARCH_PROJECT VIEW_PROJECT')
+    #@access_required(access='CREATE_PROJECT DELETE_PROJECT UPDATE_PROJECT SEARCH_PROJECT VIEW_PROJECT')
     @api.doc('search door based on post parameters')
     def post(self, page=0):
         app.logger.info('Search project method called')
@@ -190,6 +186,8 @@ class SearchProject(Resource):
                 project['id'] = hit['_id']
                 project_list.append(project)
             app.logger.info('Search project method completed')
+            app.logger.debug('PROJECT LIST:')
+            app.logger.debug(str(json.dumps(project_list)))
             return project_list, 200
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return {'message': 'internal server error'}, 500

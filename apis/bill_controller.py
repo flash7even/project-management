@@ -165,7 +165,7 @@ class CreateBill(Resource):
 @api.route('/search/<int:page>')
 class SearchBill(Resource):
 
-    @access_required(access='CREATE_BILL DELETE_BILL UPDATE_BILL SEARCH_BILL VIEW_BILL')
+    #@access_required(access='CREATE_BILL DELETE_BILL UPDATE_BILL SEARCH_BILL VIEW_BILL')
     @api.doc('search door based on post parameters')
     def post(self, page=0):
         app.logger.info('Search bill method called')

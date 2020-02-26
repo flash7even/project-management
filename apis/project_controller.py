@@ -191,3 +191,47 @@ class SearchProject(Resource):
             return project_list, 200
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return {'message': 'internal server error'}, 500
+
+
+@api.route('/stats', defaults={'page': 0})
+@api.route('/stats/<int:page>')
+class SearchProjectStat(Resource):
+
+    #@access_required(access='CREATE_PROJECT DELETE_PROJECT UPDATE_PROJECT SEARCH_PROJECT VIEW_PROJECT')
+    @api.doc('search door based on post parameters')
+    def post(self, page=0):
+        app.logger.info('Project stat method called')
+        param = request.get_json()
+        query_json = {'query': {'match_all': {}}}
+        must = []
+        for fields in param:
+            must.append({'match': {fields: param[fields]}})
+
+        if len(must) > 0:
+            query_json = {'query': {'bool': {'must': must}}}
+
+        query_json['from'] = page * _es_size
+        query_json['size'] = _es_size
+        search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_index, _es_type)
+
+        response = requests.session().post(url=search_url, json=query_json, headers=_http_headers).json()
+
+        if 'hits' in response:
+            project_list = []
+            total_value = 0
+            for hit in response['hits']['hits']:
+                project = hit['_source']
+                project['id'] = hit['_id']
+                total_value += float(project['project_value'])
+            for hit in response['hits']['hits']:
+                project = hit['_source']
+                project['id'] = hit['_id']
+                own_val = float(project['project_value'])
+                project['project_value_percentage'] = own_val*100/total_value
+                project_list.append(project)
+            app.logger.info('Search project stat method completed')
+            app.logger.debug('PROJECT LIST:')
+            app.logger.debug(str(json.dumps(project_list)))
+            return project_list, 200
+        app.logger.error('Elasticsearch down, response: ' + str(response))
+        return {'message': 'internal server error'}, 500

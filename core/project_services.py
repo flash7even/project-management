@@ -15,7 +15,7 @@ def find_project_list_using_search_params(search_param):
     rs = requests.session()
     query_json = {'query': {'match_all': {}}}
     must = []
-    keyword_fields = ['project_name']
+    keyword_fields = []
     for field in search_param:
         if field in keyword_fields:
             must.append({'term': {field: search_param[field]}})

@@ -151,6 +151,7 @@ class CreateTransaction(Resource):
 
         for mfield in mandatory_fields:
             if mfield not in data:
+                app.logger.warning('mandatory field missing')
                 return {'message': 'mandatory field missing'}, 403
 
         project_params = {

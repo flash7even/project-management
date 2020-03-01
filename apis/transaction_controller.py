@@ -7,6 +7,7 @@ from flask_restplus import Namespace, Resource
 from jwt.exceptions import *
 
 from core.project_services import find_project_list_using_search_params
+from core.transaction_services import cleanify_transaction_data
 
 api = Namespace('transaction', description='Namespace for transaction service')
 
@@ -106,8 +107,9 @@ class TransactionByID(Resource):
         if 'found' in response:
             if response['found']:
                 data = response['_source']
-                for key, value in post_data.items():
-                    data[key] = value
+                for key in post_data:
+                    if post_data[key]:
+                        data[key] = post_data[key]
                 #data['updated_by'] = current_user
                 data['updated_at'] = int(time.time())
                 response = rs.put(url=search_url, json=data, headers=_http_headers).json()
@@ -202,6 +204,7 @@ class SearchTransaction(Resource):
             for hit in response['hits']['hits']:
                 transaction = hit['_source']
                 transaction['id'] = hit['_id']
+                transaction = cleanify_transaction_data(transaction)
                 transaction_list.append(transaction)
             app.logger.info('Search transaction method completed')
             return transaction_list, 200

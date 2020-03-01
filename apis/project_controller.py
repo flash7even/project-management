@@ -109,10 +109,11 @@ class ProjectByID(Resource):
         if 'found' in response:
             if response['found']:
                 data = response['_source']
-                for key, value in post_data.items():
-                    data[key] = value
+                for key in post_data:
+                    if post_data[key]:
+                     data[key] = post_data[key]
                 #data['updated_by'] = current_user
-                #data['updated_at'] = int(time.time())
+                data['updated_at'] = int(time.time())
                 response = rs.put(url=search_url, json=data, headers=_http_headers).json()
                 if 'result' in response:
                     app.logger.info('Update project_details method completed')
@@ -130,7 +131,7 @@ class ProjectByID(Resource):
         search_url = 'http://{}/{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type, project_id)
         response = rs.delete(url=search_url, headers=_http_headers).json()
         print('response: ', response)
-        if 'found' in response:
+        if 'result' in response and response['result'] == 'deleted':
             return response['result'], 200
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return response, 500
@@ -146,6 +147,8 @@ class CreateProject(Resource):
         #current_user = get_jwt_identity().get('id')
         rs = requests.session()
         data = request.get_json()
+        data['created_at'] = int(time.time())
+        data['updated_at'] = int(time.time())
 
         post_url = 'http://{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type)
         response = rs.post(url=post_url, json=data, headers=_http_headers).json()

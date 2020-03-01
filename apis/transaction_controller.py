@@ -109,7 +109,7 @@ class TransactionByID(Resource):
                 for key, value in post_data.items():
                     data[key] = value
                 #data['updated_by'] = current_user
-                #data['updated_at'] = int(time.time())
+                data['updated_at'] = int(time.time())
                 response = rs.put(url=search_url, json=data, headers=_http_headers).json()
                 if 'result' in response:
                     app.logger.info('Update transaction_details method completed')
@@ -161,6 +161,9 @@ class CreateTransaction(Resource):
 
         project_details = project_list[0]
         data['project_id'] = project_details['id']
+
+        data['created_at'] = int(time.time())
+        data['updated_at'] = int(time.time())
 
         post_url = 'http://{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type)
         response = rs.post(url=post_url, json=data, headers=_http_headers).json()

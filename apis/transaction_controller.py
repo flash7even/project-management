@@ -104,6 +104,7 @@ class TransactionByID(Resource):
         post_data = request.get_json()
         search_url = 'http://{}/{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type, transaction_id)
         response = rs.get(url=search_url, headers=_http_headers).json()
+        app.logger.debug('es response: ' + str(response))
         if 'found' in response:
             if response['found']:
                 data = response['_source']
@@ -124,11 +125,11 @@ class TransactionByID(Resource):
     #@access_required(access='DELETE_TRANSACTION')
     @api.doc('delete transaction by id')
     def delete(self, transaction_id):
-        app.logger.info('Delete transaction_details method called')
+        app.logger.info('Delete transaction_details method called, transaction_id: ' + str(transaction_id))
         rs = requests.session()
         search_url = 'http://{}/{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type, transaction_id)
         response = rs.delete(url=search_url, headers=_http_headers).json()
-        if 'found' in response:
+        if 'result' in response:
             return response['result'], 200
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return response, 500

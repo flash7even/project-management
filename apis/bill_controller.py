@@ -210,3 +210,43 @@ class SearchBill(Resource):
             return bill_list, 200
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return {'message': 'internal server error'}, 500
+
+
+
+@api.route('/statsperweek/<int:week>')
+class StatsPerWeek(Resource):
+
+    #@access_required(access='CREATE_TRANSACTION DELETE_TRANSACTION UPDATE_TRANSACTION SEARCH_TRANSACTION VIEW_TRANSACTION')
+    @api.doc('statistics per week')
+    def post(self, week):
+        app.logger.info('Statistics per week for bill called')
+        param = request.get_json()
+        curtime = int(time.time())
+        stats_list = []
+        for w in range(0, week):
+            prevtime = curtime - 604800
+            must = []
+            must.append({"range": {"created_at": {"gte": prevtime,"lte": curtime}}})
+            if param is not None and 'project_id' in param:
+                must.append({"term" : {"project_id" : param["project_id"]}})
+            query_json = {"query": {"bool" : {"must" : must}}}
+            search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_index, _es_type)
+            rs = requests.session()
+            response = rs.post(url=search_url, json=query_json, headers=_http_headers).json()
+            if 'hits' in response:
+                no_of_tx = 0
+                total_amount = 0
+                for hit in response['hits']['hits']:
+                    bill = hit['_source']
+                    no_of_tx += 1
+                    total_amount += float(bill['amount'])
+                data = {}
+                data["total_bill"] = no_of_tx
+                data["total_amount_of_bills"] = total_amount
+                stats_list.append(data)
+                curtime = prevtime
+            else:
+                app.logger.error('Elasticsearch down, response: ' + str(response))
+                return {'message': 'internal server error'}, 500
+        app.logger.info('Statistics per week for bill completed')
+        return stats_list, 200

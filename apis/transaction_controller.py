@@ -215,12 +215,12 @@ class SearchTransaction(Resource):
 
 
 @api.route('/statsperweek/<int:week>')
-class SearchTransaction(Resource):
+class StatsPerWeek(Resource):
 
     #@access_required(access='CREATE_TRANSACTION DELETE_TRANSACTION UPDATE_TRANSACTION SEARCH_TRANSACTION VIEW_TRANSACTION')
     @api.doc('statistics per week')
     def post(self, week):
-        app.logger.info('Statistics per week called')
+        app.logger.info('Statistics per week for transaction called')
         param = request.get_json()
         curtime = int(time.time())
         stats_list = []
@@ -249,5 +249,5 @@ class SearchTransaction(Resource):
             else:
                 app.logger.error('Elasticsearch down, response: ' + str(response))
                 return {'message': 'internal server error'}, 500
-        app.logger.info('Statistics per week completed')
+        app.logger.info('Statistics per week for transaction completed')
         return stats_list, 200

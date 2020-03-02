@@ -173,7 +173,7 @@ PUT pms_transactions/_mapping
 }
 
 
-PUT pms_bills/_mapping/bill
+PUT pms_bills/_mapping
 {
   "dynamic": "strict",
   "properties": {
@@ -184,6 +184,9 @@ PUT pms_bills/_mapping/bill
         "type": "long"
     },
     "project_id": {
+        "type": "keyword"
+    },
+    "project_name": {
         "type": "keyword"
     },
     "purpose": {

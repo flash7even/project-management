@@ -219,13 +219,18 @@ class SearchTransaction(Resource):
 
     #@access_required(access='CREATE_TRANSACTION DELETE_TRANSACTION UPDATE_TRANSACTION SEARCH_TRANSACTION VIEW_TRANSACTION')
     @api.doc('statistics per week')
-    def post(self, week=1):
+    def post(self, week):
         app.logger.info('Statistics per week called')
+        param = request.get_json()
         curtime = int(time.time())
         stats_list = []
         for w in range(0, week):
             prevtime = curtime - 604800
-            query_json = {"query": {"range": {"created_at": {"gte": prevtime,"lte": curtime}}}}
+            must = []
+            must.append({"range": {"created_at": {"gte": prevtime,"lte": curtime}}})
+            if param is not None and 'project_id' in param:
+                must.append({"term" : {"project_id" : param["project_id"]}})
+            query_json = {"query": {"bool" : {"must" : must}}}
             search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_index, _es_type)
             rs = requests.session()
             response = rs.post(url=search_url, json=query_json, headers=_http_headers).json()

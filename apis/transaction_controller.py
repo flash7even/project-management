@@ -7,6 +7,7 @@ from flask_restplus import Namespace, Resource
 from jwt.exceptions import *
 
 from core.project_services import find_project_list_using_search_params
+from core.transaction_services import cleanify_transaction_data
 
 api = Namespace('transaction', description='Namespace for transaction service')
 
@@ -103,13 +104,15 @@ class TransactionByID(Resource):
         post_data = request.get_json()
         search_url = 'http://{}/{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type, transaction_id)
         response = rs.get(url=search_url, headers=_http_headers).json()
+        app.logger.debug('es response: ' + str(response))
         if 'found' in response:
             if response['found']:
                 data = response['_source']
-                for key, value in post_data.items():
-                    data[key] = value
+                for key in post_data:
+                    if post_data[key]:
+                        data[key] = post_data[key]
                 #data['updated_by'] = current_user
-                #data['updated_at'] = int(time.time())
+                data['updated_at'] = int(time.time())
                 response = rs.put(url=search_url, json=data, headers=_http_headers).json()
                 if 'result' in response:
                     app.logger.info('Update transaction_details method completed')
@@ -122,11 +125,11 @@ class TransactionByID(Resource):
     #@access_required(access='DELETE_TRANSACTION')
     @api.doc('delete transaction by id')
     def delete(self, transaction_id):
-        app.logger.info('Delete transaction_details method called')
+        app.logger.info('Delete transaction_details method called, transaction_id: ' + str(transaction_id))
         rs = requests.session()
         search_url = 'http://{}/{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type, transaction_id)
         response = rs.delete(url=search_url, headers=_http_headers).json()
-        if 'found' in response:
+        if 'result' in response:
             return response['result'], 200
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return response, 500
@@ -161,6 +164,9 @@ class CreateTransaction(Resource):
 
         project_details = project_list[0]
         data['project_id'] = project_details['id']
+
+        data['created_at'] = int(time.time())
+        data['updated_at'] = int(time.time())
 
         post_url = 'http://{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type)
         response = rs.post(url=post_url, json=data, headers=_http_headers).json()
@@ -199,6 +205,7 @@ class SearchTransaction(Resource):
             for hit in response['hits']['hits']:
                 transaction = hit['_source']
                 transaction['id'] = hit['_id']
+                transaction = cleanify_transaction_data(transaction)
                 transaction_list.append(transaction)
             app.logger.info('Search transaction method completed')
             return transaction_list, 200

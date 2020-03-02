@@ -10,6 +10,7 @@ from flask_restplus import Namespace, Resource
 from jwt.exceptions import *
 from .auth_controller import access_required
 from core.transaction_services import find_transaction_stat
+from core.bill_services import find_bill_stat
 
 api = Namespace('project', description='Namespace for project service')
 
@@ -233,6 +234,7 @@ class SearchProjectStat(Resource):
                 own_val = float(project['project_value'])
                 project['project_value_percentage'] = own_val*100/total_value
                 project['transaction_stat'] = find_transaction_stat(project['id'])
+                project['bill_stat'] = find_bill_stat(project['id'])
                 project_list.append(project)
             app.logger.info('Search project stat method completed')
             app.logger.debug('PROJECT LIST:')

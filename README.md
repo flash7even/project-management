@@ -5,6 +5,7 @@
 
 #### ES Indices
 
+````
 PUT pms_users/_mapping/user
 {
   "dynamic": "strict",

@@ -213,23 +213,22 @@ class SearchTransaction(Resource):
     #@access_required(access='CREATE_TRANSACTION DELETE_TRANSACTION UPDATE_TRANSACTION SEARCH_TRANSACTION VIEW_TRANSACTION')
     @api.doc('statistics per week')
     def post(self, week=1):
-        app.logger.info('Search transaction method called')
+        app.logger.info('Statistics per week called')
         curtime = int(time.time())
         stats_list = []
         for w in range(0, week):
             prevtime = curtime - 604800
             query_json = {"query": {"range": {"created_at": {"gte": prevtime,"lte": curtime}}}}
-            print(json.dumps(query_json))
             search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_index, _es_type)
-            print(json.dumps(search_url))
-            response = requests.session().post(url=search_url, json=query_json, headers=_http_headers).json()
+            rs = requests.session()
+            response = rs.post(url=search_url, json=query_json, headers=_http_headers).json()
             if 'hits' in response:
                 no_of_tx = 0
                 total_amount = 0
                 for hit in response['hits']['hits']:
                     transaction = hit['_source']
                     no_of_tx += 1
-                    total_amount += transaction['amount']
+                    total_amount += float(transaction['amount'])
                 data = {}
                 data["total_transaction"] = no_of_tx
                 data["total_amount_of_transactions"] = total_amount
@@ -238,4 +237,5 @@ class SearchTransaction(Resource):
             else:
                 app.logger.error('Elasticsearch down, response: ' + str(response))
                 return {'message': 'internal server error'}, 500
+        app.logger.info('Statistics per week completed')
         return stats_list, 200

@@ -17,7 +17,7 @@ _http_headers = {'Content-Type': 'application/json'}
 _es_index = 'pms_transactions'
 _es_type = '_doc'
 _es_size = 100
-INF = 99999999
+INF = 9999999999999
 
 
 @api.errorhandler(NoAuthorizationError)
@@ -189,38 +189,37 @@ class SearchTransaction(Resource):
     def post(self, page=0):
         app.logger.info('Search transaction method called')
         param = request.get_json()
+        app.logger.debug('params: ' + str(json.dumps(param)))
         query_json = {'query': {'match_all': {}}}
         must = []
-        for fields in param:
-            if 'project_id' in param and param['project_id'] is not None:
-                must.append({'term': {fields: param[fields]}})
-            elif 'amount_min' in param and param['amount_min'] is not None:
-                if 'amount_max' in param and param['amount_max'] is not None:
-                    must.append({"range": {"amount": {"gte": param['amount_min'], "lte": param['amount_max']}}})
-                else:
-                    must.append({"range": {"amount": {"gte": param['amount_min'], "lte": INF}}})
-            elif 'amount_max' in param and param['amount_max'] is not None:
-                if 'amount_min' in param and param['amount_min'] is not None:
-                    must.append({"range": {"amount": {"gte": param['amount_min'], "lte": param['amount_max']}}})
-                else:
-                    must.append({"range": {"amount": {"gte": 0, "lte": param['amount_max']}}})
-            elif 'payment_date_start' in param and param['payment_date_start'] is not None:
-                if 'payment_date_end' in param and param['payment_date_end'] is not None:
-                    must.append({"range": {"payment_date": {"gte": param['payment_date_start'], "lte": param['payment_date_end']}}})
-                else:
-                    must.append({"range": {"payment_date": {"gte": param['payment_date_start'], "lte": date.today()}}})
-            elif 'payment_date_end' in param and param['payment_date_end'] is not None:
-                if 'payment_date_start' in param and param['payment_date_start'] is not None:
-                    must.append({"range": {"payment_date": {"gte": param['payment_date_start'], "lte": param['payment_date_end']}}})
-                else:
-                    must.append({"range": {"payment_date": {"gte": "1970-01-01", "lte": param['payment_date_end']}}})
-            else:
-                must.append({'match': {fields: param[fields]}})
+        amount_min = 0
+        amount_max = INF
+        payment_date_start = "1970-01-01"
+        payment_date_end = str(date.today())
 
+        for f in param:
+            if f == 'project_name' and param[f]:
+                must.append({'term': {f: param[f]}})
+            if f == 'amount_min' and param[f]:
+                amount_min = param[f]
+            if f == 'amount_max' and param[f]:
+                amount_max = param[f]
+            if f == 'payment_date_start' and param[f]:
+                payment_date_start = param[f]
+            if f == 'payment_date_end' and param[f]:
+                payment_date_end = param[f]
+            if f == 'status' and param[f] != 'ALL':
+                must.append({'term': {f: param[f]}})
+            if f == 'mode_of_payment' and param[f] != 'ALL':
+                must.append({'term': {f: param[f]}})
+
+        must.append({"range": {"payment_date": {"gte": payment_date_start, "lte": payment_date_end}}})
+        must.append({"range": {"amount": {"gte": amount_min, "lte": amount_max}}})
 
         if len(must) > 0:
             query_json = {'query': {'bool': {'must': must}}}
 
+        app.logger.debug('query_json: ' + str(json.dumps(query_json)))
         query_json['from'] = page * _es_size
         query_json['size'] = _es_size
         search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_index, _es_type)
@@ -233,6 +232,7 @@ class SearchTransaction(Resource):
                 transaction['id'] = hit['_id']
                 transaction = cleanify_transaction_data(transaction)
                 transaction_list.append(transaction)
+            app.logger.debug('final list: ' + str(json.dumps(transaction_list)))
             app.logger.info('Search transaction method completed')
             return transaction_list, 200
         app.logger.error('Elasticsearch down, response: ' + str(response))

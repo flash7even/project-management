@@ -79,13 +79,13 @@ PUT pms_projects/_mapping
   "dynamic": "strict",
   "properties": {
     "project_name": {
-        "type": "text"
+        "type": "keyword"
     },
     "commencement_date": {
-        "type": "long"
+        "type": "date"
     },
     "termination_date": {
-        "type": "long"
+        "type": "date"
     },
     "project_value": {
         "type": "text"
@@ -123,7 +123,7 @@ PUT pms_transactions/_mapping
         "type": "keyword"
     },
     "payment_date": {
-        "type": "long"
+        "type": "date"
     },
     "payment_by": {
         "type": "keyword"

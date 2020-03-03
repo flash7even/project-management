@@ -1,4 +1,5 @@
 import requests, time, json
+from datetime import date
 from flask import current_app as app
 from flask import request
 from flask_jwt_extended import get_jwt_identity
@@ -16,6 +17,7 @@ _http_headers = {'Content-Type': 'application/json'}
 _es_index = 'pms_transactions'
 _es_type = '_doc'
 _es_size = 100
+INF = 99999999
 
 
 @api.errorhandler(NoAuthorizationError)
@@ -190,7 +192,31 @@ class SearchTransaction(Resource):
         query_json = {'query': {'match_all': {}}}
         must = []
         for fields in param:
-            must.append({'match': {fields: param[fields]}})
+            if 'project_id' in param and param['project_id'] is not None:
+                must.append({'term': {fields: param[fields]}})
+            elif 'amount_min' in param and param['amount_min'] is not None:
+                if 'amount_max' in param and param['amount_max'] is not None:
+                    must.append({"range": {"amount": {"gte": param['amount_min'], "lte": param['amount_max']}}})
+                else:
+                    must.append({"range": {"amount": {"gte": param['amount_min'], "lte": INF}}})
+            elif 'amount_max' in param and param['amount_max'] is not None:
+                if 'amount_min' in param and param['amount_min'] is not None:
+                    must.append({"range": {"amount": {"gte": param['amount_min'], "lte": param['amount_max']}}})
+                else:
+                    must.append({"range": {"amount": {"gte": 0, "lte": param['amount_max']}}})
+            elif 'payment_date_start' in param and param['payment_date_start'] is not None:
+                if 'payment_date_end' in param and param['payment_date_end'] is not None:
+                    must.append({"range": {"payment_date": {"gte": param['payment_date_start'], "lte": param['payment_date_end']}}})
+                else:
+                    must.append({"range": {"payment_date": {"gte": param['payment_date_start'], "lte": date.today()}}})
+            elif 'payment_date_end' in param and param['payment_date_end'] is not None:
+                if 'payment_date_start' in param and param['payment_date_start'] is not None:
+                    must.append({"range": {"payment_date": {"gte": param['payment_date_start'], "lte": param['payment_date_end']}}})
+                else:
+                    must.append({"range": {"payment_date": {"gte": "1970-01-01", "lte": param['payment_date_end']}}})
+            else:
+                must.append({'match': {fields: param[fields]}})
+
 
         if len(must) > 0:
             query_json = {'query': {'bool': {'must': must}}}

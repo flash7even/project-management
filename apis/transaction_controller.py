@@ -198,7 +198,7 @@ class SearchTransaction(Resource):
         payment_date_end = str(date.today())
 
         for f in param:
-            if f == 'project_name' and param[f]:
+            if f == 'project_name' and param[f] != 'ALL':
                 must.append({'term': {f: param[f]}})
             if f == 'amount_min' and param[f]:
                 amount_min = param[f]
@@ -219,9 +219,14 @@ class SearchTransaction(Resource):
         if len(must) > 0:
             query_json = {'query': {'bool': {'must': must}}}
 
-        app.logger.debug('query_json: ' + str(json.dumps(query_json)))
         query_json['from'] = page * _es_size
         query_json['size'] = _es_size
+
+        if 'sort_by' in param and param['sort_by'] != 'none':
+            query_json['sort'] = [{param['sort_by']: {'order': param['sort_order']}}]
+
+        app.logger.debug('query_json: ' + str(json.dumps(query_json)))
+
         search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_index, _es_type)
 
         response = requests.session().post(url=search_url, json=query_json, headers=_http_headers).json()
@@ -237,7 +242,6 @@ class SearchTransaction(Resource):
             return transaction_list, 200
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return {'message': 'internal server error'}, 500
-
 
 
 @api.route('/statsperweek/<int:week>')

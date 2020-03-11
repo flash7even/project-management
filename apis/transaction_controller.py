@@ -211,7 +211,7 @@ class SearchTransaction(Resource):
             if f == 'status' and param[f] != 'ALL':
                 must.append({'term': {f: param[f]}})
             if f == 'mode_of_payment' and param[f] != 'ALL':
-                must.append({'term': {f: param[f]}})
+                must.append({'match': {f: param[f]}})
 
         must.append({"range": {"payment_date": {"gte": payment_date_start, "lte": payment_date_end}}})
         must.append({"range": {"amount": {"gte": amount_min, "lte": amount_max}}})

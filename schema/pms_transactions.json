@@ -1,0 +1,56 @@
+{
+  "dynamic" : "strict",
+  "properties" : {
+    "amount" : {
+      "type" : "double"
+    },
+    "cheque_no" : {
+      "type" : "keyword"
+    },
+    "currency" : {
+      "type" : "keyword"
+    },
+    "description" : {
+      "type" : "text"
+    },
+    "mode_of_payment" : {
+      "type" : "text"
+    },
+    "payment_by" : {
+      "type" : "keyword"
+    },
+    "payment_date" : {
+      "type" : "date"
+    },
+    "project_id" : {
+      "type" : "keyword"
+    },
+    "project_name" : {
+      "type" : "keyword"
+    },
+    "remarks" : {
+      "type" : "text"
+    },
+    "status" : {
+      "type" : "keyword"
+    },
+    "transaction_id" : {
+      "type" : "keyword"
+    },
+    "voucher_no" : {
+      "type" : "keyword"
+    },
+    "updated_at" : {
+      "type" : "date"
+    },
+    "updated_by" : {
+      "type" : "keyword"
+    },
+    "created_at" : {
+      "type" : "long"
+    },
+    "created_by" : {
+      "type" : "keyword"
+    }
+  }
+}

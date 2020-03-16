@@ -1,6 +1,7 @@
 import time
 import json
 import requests
+from datetime import date
 from flask import current_app as app
 from flask import request
 from flask_jwt_extended import get_jwt_identity
@@ -19,6 +20,7 @@ _http_headers = {'Content-Type': 'application/json'}
 _es_index = 'pms_bills'
 _es_type = '_doc'
 _es_size = 100
+INF = 9999999999999
 
 
 @api.errorhandler(NoAuthorizationError)
@@ -183,20 +185,48 @@ class CreateBill(Resource):
 class SearchBill(Resource):
 
     #@access_required(access='CREATE_BILL DELETE_BILL UPDATE_BILL SEARCH_BILL VIEW_BILL')
-    @api.doc('search door based on post parameters')
+    @api.doc('search bill based on post parameters')
     def post(self, page=0):
         app.logger.info('Search bill method called')
         param = request.get_json()
+        app.logger.debug('params: ' + str(json.dumps(param)))
         query_json = {'query': {'match_all': {}}}
         must = []
-        for fields in param:
-            must.append({'match': {fields: param[fields]}})
+        amount_min = 0
+        amount_max = INF
+        payment_date_start = "1970-01-01"
+        payment_date_end = str(date.today())
+
+        for f in param:
+            if f == 'project_name' and param[f] != 'ALL':
+                must.append({'term': {f: param[f]}})
+            if f == 'amount_min' and param[f]:
+                amount_min = param[f]
+            if f == 'amount_max' and param[f]:
+                amount_max = param[f]
+            if f == 'payment_date_start' and param[f]:
+                payment_date_start = param[f]
+            if f == 'payment_date_end' and param[f]:
+                payment_date_end = param[f]
+            if f == 'status' and param[f] != 'ALL':
+                must.append({'term': {f: param[f]}})
+            if f == 'mode_of_payment' and param[f] != 'ALL':
+                must.append({'match': {f: param[f]}})
+
+        must.append({"range": {"payment_date": {"gte": payment_date_start, "lte": payment_date_end}}})
+        must.append({"range": {"amount": {"gte": amount_min, "lte": amount_max}}})
 
         if len(must) > 0:
             query_json = {'query': {'bool': {'must': must}}}
 
         query_json['from'] = page * _es_size
         query_json['size'] = _es_size
+
+        if 'sort_by' in param and param['sort_by'] != 'none':
+            query_json['sort'] = [{param['sort_by']: {'order': param['sort_order']}}]
+
+        app.logger.debug('query_json: ' + str(json.dumps(query_json)))
+
         search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_index, _es_type)
 
         response = requests.session().post(url=search_url, json=query_json, headers=_http_headers).json()
@@ -206,6 +236,7 @@ class SearchBill(Resource):
                 bill = hit['_source']
                 bill['id'] = hit['_id']
                 bill_list.append(bill)
+            app.logger.debug('final list: ' + str(json.dumps(bill_list)))
             app.logger.info('Search bill method completed')
             return bill_list, 200
         app.logger.error('Elasticsearch down, response: ' + str(response))

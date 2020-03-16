@@ -1,0 +1,38 @@
+{
+  "dynamic" : "strict",
+  "properties" : {
+    "commencement_date" : {
+      "type" : "date"
+    },
+    "description" : {
+      "type" : "text"
+    },
+    "notes" : {
+      "type" : "text"
+    },
+    "project_name" : {
+      "type" : "keyword"
+    },
+    "project_value" : {
+      "type" : "text"
+    },
+    "status" : {
+      "type" : "text"
+    },
+    "termination_date" : {
+      "type" : "date"
+    },
+    "updated_at" : {
+      "type" : "date"
+    },
+    "updated_by" : {
+      "type" : "keyword"
+    },
+    "created_at" : {
+      "type" : "date"
+    },
+    "created_by" : {
+      "type" : "keyword"
+    }
+  }
+}

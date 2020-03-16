@@ -1,0 +1,22 @@
+{
+  "properties" : {
+    "description" : {
+      "type" : "text"
+    },
+    "payment_method_name" : {
+      "type" : "keyword"
+    },
+    "updated_at" : {
+      "type" : "long"
+    },
+    "created_at" : {
+      "type" : "long"
+    },
+    "updated_by" : {
+      "type" : "keyword"
+    },
+    "created_by" : {
+      "type" : "keyword"
+    }
+  }
+}

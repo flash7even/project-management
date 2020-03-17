@@ -169,6 +169,7 @@ class CreateTransaction(Resource):
 
         data['created_at'] = int(time.time())
         data['updated_at'] = int(time.time())
+        data['active_status'] = 'active'
 
         post_url = 'http://{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type)
         response = rs.post(url=post_url, json=data, headers=_http_headers).json()

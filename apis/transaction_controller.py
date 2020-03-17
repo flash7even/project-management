@@ -281,3 +281,29 @@ class StatsPerWeek(Resource):
                 return {'message': 'internal server error'}, 500
         app.logger.info('Statistics per week for transaction completed')
         return stats_list, 200
+
+
+@api.route('/status/<string:transaction_id>/<string:status>')
+class TransactionByID(Resource):
+
+    @api.doc('update transaction by id')
+    def put(self, transaction_id, status):
+        app.logger.info('Update transaction_details method called')
+        #current_user = get_jwt_identity().get('id')
+        rs = requests.session()
+        search_url = 'http://{}/{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type, transaction_id)
+        response = rs.get(url=search_url, headers=_http_headers).json()
+        app.logger.debug('es response: ' + str(response))
+        if 'found' in response:
+            if response['found']:
+                data = response['_source']
+                data['active_status'] = status
+                data['updated_at'] = int(time.time())
+                response = rs.put(url=search_url, json=data, headers=_http_headers).json()
+                if 'result' in response:
+                    app.logger.info('Update transaction_details method completed')
+                    return response['result'], 200
+            app.logger.warning('Transaction not found')
+            return {'message': 'not found'}, 404
+        app.logger.error('Elasticsearch down, response: ' + str(response))
+        return response, 500

@@ -192,6 +192,7 @@ class SearchTransaction(Resource):
         app.logger.debug('params: ' + str(json.dumps(param)))
         query_json = {'query': {'match_all': {}}}
         must = []
+        must.append({'term': {'active_status': 'active'}})
         amount_min = 0
         amount_max = INF
         payment_date_start = "1970-01-01"
@@ -258,6 +259,7 @@ class StatsPerWeek(Resource):
             prevtime = curtime - 604800
             must = []
             must.append({"range": {"created_at": {"gte": prevtime,"lte": curtime}}})
+            must.append({'term': {'active_status': 'active'}})
             if param is not None and 'project_id' in param:
                 must.append({"term" : {"project_id" : param["project_id"]}})
             query_json = {"query": {"bool" : {"must" : must}}}

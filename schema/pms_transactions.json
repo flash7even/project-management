@@ -34,6 +34,9 @@
     "status" : {
       "type" : "keyword"
     },
+    "active_status" : {
+      "type" : "keyword"
+    },
     "transaction_id" : {
       "type" : "keyword"
     },

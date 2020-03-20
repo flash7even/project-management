@@ -1,17 +1,15 @@
-import time
-import json
-import requests
+import requests, time, json
 from datetime import date
+import datetime
 from flask import current_app as app
 from flask import request
 from flask_jwt_extended import get_jwt_identity
-from flask_jwt_extended import jwt_required
 from flask_jwt_extended.exceptions import *
 from flask_restplus import Namespace, Resource
 from jwt.exceptions import *
-from .auth_controller import access_required
 
 from core.project_services import find_project_list_using_search_params
+from core.bill_services import cleanify_bill_data, get_bill_initial_time
 
 api = Namespace('bill', description='Namespace for bill service')
 
@@ -82,7 +80,7 @@ def handle_failed_user_claims_verification(e):
 @api.route('/<string:bill_id>')
 class BillByID(Resource):
 
-    @access_required(access='CREATE_BILL DELETE_BILL UPDATE_BILL SEARCH_BILL VIEW_BILL')
+    #@access_required(access='CREATE_TRANSACTION DELETE_TRANSACTION UPDATE_TRANSACTION SEARCH_TRANSACTION VIEW_TRANSACTION')
     @api.doc('get bill details by id')
     def get(self, bill_id):
         app.logger.info('Get bill_details method called')
@@ -100,20 +98,23 @@ class BillByID(Resource):
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return response, 500
 
-    @access_required(access='CREATE_BILL DELETE_BILL UPDATE_BILL')
+    #@access_required(access='CREATE_TRANSACTION DELETE_TRANSACTION UPDATE_TRANSACTION')
     @api.doc('update bill by id')
     def put(self, bill_id):
         app.logger.info('Update bill_details method called')
-        # current_user = get_jwt_identity().get('id')
+        #current_user = get_jwt_identity().get('id')
         rs = requests.session()
         post_data = request.get_json()
         search_url = 'http://{}/{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type, bill_id)
         response = rs.get(url=search_url, headers=_http_headers).json()
+        app.logger.debug('es response: ' + str(response))
         if 'found' in response:
             if response['found']:
                 data = response['_source']
-                for key, value in post_data.items():
-                    data[key] = value
+                for key in post_data:
+                    if post_data[key]:
+                        data[key] = post_data[key]
+                #data['updated_by'] = current_user
                 data['updated_at'] = int(time.time())
                 response = rs.put(url=search_url, json=data, headers=_http_headers).json()
                 if 'result' in response:
@@ -124,15 +125,14 @@ class BillByID(Resource):
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return response, 500
 
-    @access_required(access='DELETE_BILL')
+    #@access_required(access='DELETE_TRANSACTION')
     @api.doc('delete bill by id')
     def delete(self, bill_id):
-        app.logger.info('Delete bill_details method called')
+        app.logger.info('Delete bill_details method called, bill_id: ' + str(bill_id))
         rs = requests.session()
         search_url = 'http://{}/{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type, bill_id)
         response = rs.delete(url=search_url, headers=_http_headers).json()
-        print('response: ', response)
-        if 'found' in response:
+        if 'result' in response:
             return response['result'], 200
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return response, 500
@@ -141,10 +141,11 @@ class BillByID(Resource):
 @api.route('/')
 class CreateBill(Resource):
 
+    #@access_required(access='CREATE_TRANSACTION DELETE_TRANSACTION')
     @api.doc('create new bill')
     def post(self):
         app.logger.info('Create bill method called')
-        # current_user = get_jwt_identity().get('id')
+        #current_user = get_jwt_identity().get('id')
         rs = requests.session()
         data = request.get_json()
 
@@ -169,6 +170,7 @@ class CreateBill(Resource):
 
         data['created_at'] = int(time.time())
         data['updated_at'] = int(time.time())
+        data['active_status'] = 'active'
 
         post_url = 'http://{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type)
         response = rs.post(url=post_url, json=data, headers=_http_headers).json()
@@ -184,14 +186,15 @@ class CreateBill(Resource):
 @api.route('/search/<int:page>')
 class SearchBill(Resource):
 
-    #@access_required(access='CREATE_BILL DELETE_BILL UPDATE_BILL SEARCH_BILL VIEW_BILL')
-    @api.doc('search bill based on post parameters')
+    #@access_required(access='CREATE_TRANSACTION DELETE_TRANSACTION UPDATE_TRANSACTION SEARCH_TRANSACTION VIEW_TRANSACTION')
+    @api.doc('search door based on post parameters')
     def post(self, page=0):
         app.logger.info('Search bill method called')
         param = request.get_json()
         app.logger.debug('params: ' + str(json.dumps(param)))
         query_json = {'query': {'match_all': {}}}
         must = []
+        must.append({'term': {'active_status': 'active'}})
         amount_min = 0
         amount_max = INF
         payment_date_start = "1970-01-01"
@@ -225,6 +228,7 @@ class SearchBill(Resource):
         if 'sort_by' in param and param['sort_by'] != 'none':
             query_json['sort'] = [{param['sort_by']: {'order': param['sort_order']}}]
 
+        query_json['sort'] = [{'payment_date': {'order': 'asc'}}]
         app.logger.debug('query_json: ' + str(json.dumps(query_json)))
 
         search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_index, _es_type)
@@ -235,6 +239,7 @@ class SearchBill(Resource):
             for hit in response['hits']['hits']:
                 bill = hit['_source']
                 bill['id'] = hit['_id']
+                bill = cleanify_bill_data(bill)
                 bill_list.append(bill)
             app.logger.debug('final list: ' + str(json.dumps(bill_list)))
             app.logger.info('Search bill method completed')
@@ -243,27 +248,31 @@ class SearchBill(Resource):
         return {'message': 'internal server error'}, 500
 
 
-
 @api.route('/statsperweek/<int:week>')
 class StatsPerWeek(Resource):
 
     #@access_required(access='CREATE_TRANSACTION DELETE_TRANSACTION UPDATE_TRANSACTION SEARCH_TRANSACTION VIEW_TRANSACTION')
     @api.doc('statistics per week')
     def post(self, week):
-        app.logger.info('Statistics per week for bill called')
+        app.logger.info('STATISTICS PER WEEK for bill called')
         param = request.get_json()
         curtime = int(time.time())
         stats_list = []
         for w in range(0, week):
             prevtime = curtime - 604800
+            prevtime_dt = time.strftime('%Y-%m-%d', time.localtime(prevtime))
+            curtime_dt = time.strftime('%Y-%m-%d', time.localtime(curtime))
             must = []
-            must.append({"range": {"created_at": {"gte": prevtime,"lte": curtime}}})
+            must.append({"range": {"payment_date": {"gte": prevtime_dt,"lte": curtime_dt}}})
+            must.append({'term': {'active_status': 'active'}})
             if param is not None and 'project_id' in param:
                 must.append({"term" : {"project_id" : param["project_id"]}})
             query_json = {"query": {"bool" : {"must" : must}}}
             search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_index, _es_type)
             rs = requests.session()
             response = rs.post(url=search_url, json=query_json, headers=_http_headers).json()
+            app.logger.info('query_json: ' + json.dumps(query_json))
+            app.logger.info('response: ' + json.dumps(response))
             if 'hits' in response:
                 no_of_tx = 0
                 total_amount = 0
@@ -279,5 +288,99 @@ class StatsPerWeek(Resource):
             else:
                 app.logger.error('Elasticsearch down, response: ' + str(response))
                 return {'message': 'internal server error'}, 500
+        app.logger.info('WEEKLY_STAT: ' + json.dumps(stats_list))
         app.logger.info('Statistics per week for bill completed')
         return stats_list, 200
+
+
+@api.route('/statsperweek/perproject/<int:division>')
+class StatsPerWeek(Resource):
+
+    #@access_required(access='CREATE_TRANSACTION DELETE_TRANSACTION UPDATE_TRANSACTION SEARCH_TRANSACTION VIEW_TRANSACTION')
+    @api.doc('Project statistics per division')
+    def post(self, division):
+        app.logger.info('STATISTICS PER DIVISION PER PROJECT for bill called')
+
+        initial_date = get_bill_initial_time()
+        current_date = date.today()
+        total_days = (current_date - initial_date).days
+        app.logger.info('total_days: ' + str(total_days))
+        avg_days_per_division = int(total_days/division)
+        app.logger.info('total_days: ' + str(avg_days_per_division))
+
+        project_list = find_project_list_using_search_params({})
+        app.logger.info('project_list: ' + json.dumps(project_list))
+
+        stats_list = {
+            'project_list': project_list,
+            'interval_duration': avg_days_per_division,
+            'data_list_per_division': []
+        }
+
+        date_now = initial_date
+        for d in range(0, division):
+            date_now = date_now + datetime.timedelta(days=avg_days_per_division)
+            app.logger.info('date_now: ' + str(date_now))
+
+            project_data_list = []
+
+            for project in project_list:
+
+                must = []
+                must.append({"range": {"payment_date": {"gte": str(initial_date), "lte": str(date_now)}}})
+                must.append({'term': {'active_status': 'active'}})
+                must.append({"term": {"project_id": project["id"]}})
+                query_json = {"query": {"bool" : {"must" : must}}}
+                query_json['aggs'] = {"amount" : { "sum" : { "field" : "amount" }}}
+                query_json['size'] = 0
+
+                search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_index, _es_type)
+                rs = requests.session()
+                app.logger.debug('query_json: ' + str(json.dumps(query_json)))
+                response = rs.post(url=search_url, json=query_json, headers=_http_headers).json()
+                app.logger.info('response: ' + json.dumps(response))
+
+                if 'hits' in response and 'aggregations' in response:
+                    pdata = {
+                        'amount_sum': response['aggregations']['amount']['value']
+                    }
+                    project_data_list.append(pdata)
+                else:
+                    app.logger.error('Elasticsearch down, response: ' + str(response))
+                    return {'message': 'internal server error'}, 500
+
+            div_data = {
+                'end_date': str(date_now),
+                'project_data_list': project_data_list
+            }
+            stats_list['data_list_per_division'].append(div_data)
+
+        app.logger.info('DIVISION_WISE_STAT: ' + json.dumps(stats_list))
+        app.logger.info('Statistics per division per project for bill completed')
+        return stats_list, 200
+
+
+@api.route('/status/<string:bill_id>/<string:status>')
+class BillByID(Resource):
+
+    @api.doc('update bill by id')
+    def put(self, bill_id, status):
+        app.logger.info('Update bill_details method called')
+        #current_user = get_jwt_identity().get('id')
+        rs = requests.session()
+        search_url = 'http://{}/{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type, bill_id)
+        response = rs.get(url=search_url, headers=_http_headers).json()
+        app.logger.debug('es response: ' + str(response))
+        if 'found' in response:
+            if response['found']:
+                data = response['_source']
+                data['active_status'] = status
+                data['updated_at'] = int(time.time())
+                response = rs.put(url=search_url, json=data, headers=_http_headers).json()
+                if 'result' in response:
+                    app.logger.info('Update bill_details method completed')
+                    return response['result'], 200
+            app.logger.warning('Bill not found')
+            return {'message': 'not found'}, 404
+        app.logger.error('Elasticsearch down, response: ' + str(response))
+        return response, 500

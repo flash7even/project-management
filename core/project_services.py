@@ -27,6 +27,7 @@ def find_project_list_using_search_params(search_param):
         query_json = {'query': {'bool': {'must': must}}}
 
     query_json['size'] = _es_size
+    query_json['sort'] = [{'created_at': {'order': 'asc'}}]
     search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_index, _es_type)
 
     response = rs.post(url=search_url, json=query_json, headers=_http_headers).json()

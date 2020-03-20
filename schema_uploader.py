@@ -76,7 +76,7 @@ def create_schema(dirpath):
 
 
 if __name__ == '__main__':
-    logger.error('START RUNNING ES INDEX MIGRATION SCRIPT\n')
+    logger.info('START RUNNING ES INDEX MIGRATION SCRIPT\n')
 
     parser = argparse.ArgumentParser(description='Enroll an image or by a directory of images of a person')
     parser.add_argument('--dir', help="Directory of the es schema")

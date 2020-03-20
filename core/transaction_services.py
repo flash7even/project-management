@@ -1,4 +1,6 @@
 import json
+from datetime import date
+import datetime
 
 import requests
 from flask import current_app as app
@@ -51,6 +53,26 @@ def find_transaction_list_using_search_params(search_param):
         return project_list
     app.logger.error('Elasticsearch down, response: ' + str(response))
     return project_list
+
+
+def get_transaction_initial_time():
+    app.logger.info('get_transaction_initial_time method called')
+    rs = requests.session()
+    initial_time = datetime.date.today()
+    query_json = {'sort': [{'payment_date': {'order': 'asc'}}] ,'query': {'match_all': {}}}
+    query_json['size'] = 1
+    search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_index, _es_type)
+
+    response = rs.post(url=search_url, json=query_json, headers=_http_headers).json()
+    if 'hits' in response:
+        for hit in response['hits']['hits']:
+            data = hit['_source']
+            initial_time = data['payment_date']
+            initial_time = datetime.datetime.strptime(initial_time, '%Y-%m-%d')
+            return initial_time.date()
+    app.logger.error('Elasticsearch down, response: ' + str(response))
+    app.logger.info('get_transaction_initial_time method completed')
+    return initial_time
 
 
 def find_transaction_stat(project_id):

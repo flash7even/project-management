@@ -1,5 +1,6 @@
 import requests, time, json
 from datetime import date
+import datetime
 from flask import current_app as app
 from flask import request
 from flask_jwt_extended import get_jwt_identity
@@ -8,7 +9,7 @@ from flask_restplus import Namespace, Resource
 from jwt.exceptions import *
 
 from core.project_services import find_project_list_using_search_params
-from core.transaction_services import cleanify_transaction_data
+from core.transaction_services import cleanify_transaction_data, get_transaction_initial_time
 
 api = Namespace('transaction', description='Namespace for transaction service')
 
@@ -227,6 +228,7 @@ class SearchTransaction(Resource):
         if 'sort_by' in param and param['sort_by'] != 'none':
             query_json['sort'] = [{param['sort_by']: {'order': param['sort_order']}}]
 
+        query_json['sort'] = [{'payment_date': {'order': 'asc'}}]
         app.logger.debug('query_json: ' + str(json.dumps(query_json)))
 
         search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_index, _es_type)
@@ -252,14 +254,16 @@ class StatsPerWeek(Resource):
     #@access_required(access='CREATE_TRANSACTION DELETE_TRANSACTION UPDATE_TRANSACTION SEARCH_TRANSACTION VIEW_TRANSACTION')
     @api.doc('statistics per week')
     def post(self, week):
-        app.logger.info('Statistics per week for transaction called')
+        app.logger.info('STATISTICS PER WEEK for transaction called')
         param = request.get_json()
         curtime = int(time.time())
         stats_list = []
         for w in range(0, week):
             prevtime = curtime - 604800
+            prevtime_dt = time.strftime('%Y-%m-%d', time.localtime(prevtime))
+            curtime_dt = time.strftime('%Y-%m-%d', time.localtime(curtime))
             must = []
-            must.append({"range": {"created_at": {"gte": prevtime,"lte": curtime}}})
+            must.append({"range": {"payment_date": {"gte": prevtime_dt,"lte": curtime_dt}}})
             must.append({'term': {'active_status': 'active'}})
             if param is not None and 'project_id' in param:
                 must.append({"term" : {"project_id" : param["project_id"]}})
@@ -267,6 +271,8 @@ class StatsPerWeek(Resource):
             search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_index, _es_type)
             rs = requests.session()
             response = rs.post(url=search_url, json=query_json, headers=_http_headers).json()
+            app.logger.info('query_json: ' + json.dumps(query_json))
+            app.logger.info('response: ' + json.dumps(response))
             if 'hits' in response:
                 no_of_tx = 0
                 total_amount = 0
@@ -282,7 +288,75 @@ class StatsPerWeek(Resource):
             else:
                 app.logger.error('Elasticsearch down, response: ' + str(response))
                 return {'message': 'internal server error'}, 500
+        app.logger.info('WEEKLY_STAT: ' + json.dumps(stats_list))
         app.logger.info('Statistics per week for transaction completed')
+        return stats_list, 200
+
+
+@api.route('/statsperweek/perproject/<int:division>')
+class StatsPerWeek(Resource):
+
+    #@access_required(access='CREATE_TRANSACTION DELETE_TRANSACTION UPDATE_TRANSACTION SEARCH_TRANSACTION VIEW_TRANSACTION')
+    @api.doc('Project statistics per division')
+    def post(self, division):
+        app.logger.info('STATISTICS PER DIVISION PER PROJECT for transaction called')
+
+        initial_date = get_transaction_initial_time()
+        current_date = date.today()
+        total_days = (current_date - initial_date).days
+        app.logger.info('total_days: ' + str(total_days))
+        avg_days_per_division = int(total_days/division)
+        app.logger.info('total_days: ' + str(avg_days_per_division))
+
+        project_list = find_project_list_using_search_params({})
+        app.logger.info('project_list: ' + json.dumps(project_list))
+
+        stats_list = {
+            'project_list': project_list,
+            'interval_duration': avg_days_per_division,
+            'data_list_per_division': []
+        }
+
+        date_now = initial_date
+        for d in range(0, division):
+            date_now = date_now + datetime.timedelta(days=avg_days_per_division)
+            app.logger.info('date_now: ' + str(date_now))
+
+            project_data_list = []
+
+            for project in project_list:
+
+                must = []
+                must.append({"range": {"payment_date": {"gte": str(initial_date), "lte": str(date_now)}}})
+                must.append({'term': {'active_status': 'active'}})
+                must.append({"term": {"project_id": project["id"]}})
+                query_json = {"query": {"bool" : {"must" : must}}}
+                query_json['aggs'] = {"amount" : { "sum" : { "field" : "amount" }}}
+                query_json['size'] = 0
+
+                search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_index, _es_type)
+                rs = requests.session()
+                app.logger.debug('query_json: ' + str(json.dumps(query_json)))
+                response = rs.post(url=search_url, json=query_json, headers=_http_headers).json()
+                app.logger.info('response: ' + json.dumps(response))
+
+                if 'hits' in response and 'aggregations' in response:
+                    pdata = {
+                        'amount_sum': response['aggregations']['amount']['value']
+                    }
+                    project_data_list.append(pdata)
+                else:
+                    app.logger.error('Elasticsearch down, response: ' + str(response))
+                    return {'message': 'internal server error'}, 500
+
+            div_data = {
+                'end_date': str(date_now),
+                'project_data_list': project_data_list
+            }
+            stats_list['data_list_per_division'].append(div_data)
+
+        app.logger.info('DIVISION_WISE_STAT: ' + json.dumps(stats_list))
+        app.logger.info('Statistics per division per project for transaction completed')
         return stats_list, 200
 
 

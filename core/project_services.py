@@ -1,5 +1,6 @@
 import json
-
+from datetime import date
+import datetime
 import requests
 from flask import current_app as app
 
@@ -9,6 +10,12 @@ _http_headers = {'Content-Type': 'application/json'}
 _es_index = 'pms_projects'
 _es_type = '_doc'
 _es_size = 100
+
+
+def get_current_date():
+    today = datetime.datetime.today()
+    today_date = date(year=today.year, month=today.month, day=today.day)
+    return today_date
 
 
 def find_project_list_using_search_params(search_param):

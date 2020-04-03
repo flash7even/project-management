@@ -8,7 +8,7 @@ from flask_jwt_extended.exceptions import *
 from flask_restplus import Namespace, Resource
 from jwt.exceptions import *
 
-from core.project_services import find_project_list_using_search_params
+from core.project_services import find_project_list_using_search_params, get_current_date
 from core.transaction_services import cleanify_transaction_data, get_transaction_initial_time
 
 api = Namespace('transaction', description='Namespace for transaction service')
@@ -115,7 +115,7 @@ class TransactionByID(Resource):
                     if post_data[key]:
                         data[key] = post_data[key]
                 #data['updated_by'] = current_user
-                data['updated_at'] = int(time.time())
+                data['updated_at'] = str(get_current_date())
                 response = rs.put(url=search_url, json=data, headers=_http_headers).json()
                 if 'result' in response:
                     app.logger.info('Update transaction_details method completed')
@@ -168,10 +168,11 @@ class CreateTransaction(Resource):
         project_details = project_list[0]
         data['project_id'] = project_details['id']
 
-        data['created_at'] = int(time.time())
-        data['updated_at'] = int(time.time())
+        #data['created_at'] = str(get_current_date())
+        data['updated_at'] = str(get_current_date())
         data['active_status'] = 'active'
 
+        app.logger.info('data' + json.dumps(data))
         post_url = 'http://{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type)
         response = rs.post(url=post_url, json=data, headers=_http_headers).json()
 
@@ -375,7 +376,7 @@ class TransactionByID(Resource):
             if response['found']:
                 data = response['_source']
                 data['active_status'] = status
-                data['updated_at'] = int(time.time())
+                data['updated_at'] = str(get_current_date())
                 response = rs.put(url=search_url, json=data, headers=_http_headers).json()
                 if 'result' in response:
                     app.logger.info('Update transaction_details method completed')

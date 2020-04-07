@@ -1,0 +1,50 @@
+{
+  "dynamic" : "strict",
+  "properties" : {
+    "project_id" : {
+      "type" : "keyword"
+    },
+    "project_name" : {
+      "type" : "keyword"
+    },
+    "material_name" : {
+      "type" : "text"
+    },
+    "unit" : {
+      "type" : "text"
+    },
+    "unit_price" : {
+      "type" : "float"
+    },
+    "quantity" : {
+      "type" : "float"
+    },
+    "total_price" : {
+      "type" : "float"
+    },
+    "supplier_name" : {
+      "type" : "text"
+    },
+    "voucher" : {
+      "type" : "text"
+    },
+    "stock" : {
+      "type" : "float"
+    },
+    "remarks" : {
+      "type" : "text"
+    },
+    "created_at" : {
+      "type" : "long"
+    },
+    "created_by" : {
+      "type" : "keyword"
+    },
+    "updated_at" : {
+      "type" : "long"
+    },
+    "updated_by" : {
+      "type" : "keyword"
+    }
+  }
+}

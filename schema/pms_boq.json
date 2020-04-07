@@ -1,0 +1,56 @@
+{
+  "dynamic" : "strict",
+  "properties" : {
+    "project_id" : {
+      "type" : "keyword"
+    },
+    "project_name" : {
+      "type" : "keyword"
+    },
+    "description" : {
+      "type" : "text"
+    },
+    "unit" : {
+      "type" : "text"
+    },
+    "unit_price" : {
+      "type" : "float"
+    },
+    "quantity" : {
+      "type" : "float"
+    },
+    "total_price" : {
+      "type" : "float"
+    },
+    "quoted_price" : {
+      "type" : "float"
+    },
+    "profit" : {
+      "type" : "float"
+    },
+    "issue_date" : {
+      "type" : "date"
+    },
+    "issue_quanitity" : {
+      "type" : "float"
+    },
+    "issue_voucher" : {
+      "type" : "text"
+    },
+    "stock_in_hand" : {
+      "type" : "float"
+    },
+    "created_at" : {
+      "type" : "long"
+    },
+    "created_by" : {
+      "type" : "keyword"
+    },
+    "updated_at" : {
+      "type" : "long"
+    },
+    "updated_by" : {
+      "type" : "keyword"
+    }
+  }
+}

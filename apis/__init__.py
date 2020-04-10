@@ -11,6 +11,7 @@ from .user_controller import api as user_ns
 from .user_role_controller import api as role_ns
 from .method_access_controller import api as access_ns
 from .project_controller import api as project_ns
+from .material_controller import api as mat_ns
 from .transaction_controller import api as transaction_ns
 from .payment_method_controller import api as pmethod_ns
 from .bill_controller import api as bill_ns
@@ -26,6 +27,7 @@ api.add_namespace(user_ns, path='/user')
 api.add_namespace(role_ns, path='/role')
 api.add_namespace(access_ns, path='/access')
 api.add_namespace(project_ns, path='/project')
+api.add_namespace(mat_ns, path='/material')
 api.add_namespace(transaction_ns, path='/transaction')
 api.add_namespace(bill_ns, path='/bill')
 api.add_namespace(pmethod_ns, path='/payment/method')

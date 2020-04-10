@@ -9,8 +9,6 @@ from flask_jwt_extended.exceptions import *
 from flask_restplus import Namespace, Resource
 from jwt.exceptions import *
 from .auth_controller import access_required
-from core.transaction_services import find_transaction_stat
-from core.bill_services import find_bill_stat
 
 api = Namespace('material', description='Namespace for material service')
 
@@ -80,7 +78,7 @@ def handle_failed_user_claims_verification(e):
 @api.route('/<string:material_id>')
 class MaterialByID(Resource):
 
-    #@access_required(access='CREATE_PROJECT DELETE_PROJECT UPDATE_PROJECT SEARCH_PROJECT VIEW_PROJECT')
+    #@access_required(access='CREATE_MATERIAL DELETE_MATERIAL UPDATE_MATERIAL SEARCH_MATERIAL VIEW_MATERIAL')
     @api.doc('get material details by id')
     def get(self, material_id):
         app.logger.info('Get material_details api called')
@@ -98,7 +96,7 @@ class MaterialByID(Resource):
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return response, 500
 
-    #@access_required(access='CREATE_PROJECT DELETE_PROJECT UPDATE_PROJECT')
+    #@access_required(access='CREATE_MATERIAL DELETE_MATERIAL UPDATE_MATERIAL')
     @api.doc('update material by id')
     def put(self, material_id):
         app.logger.info('Update material_details api called')
@@ -124,7 +122,7 @@ class MaterialByID(Resource):
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return response, 500
 
-    #@access_required(access='DELETE_PROJECT')
+    #@access_required(access='DELETE_MATERIAL')
     @api.doc('delete material by id')
     def delete(self, material_id):
         app.logger.info('Delete material_details api called')
@@ -141,7 +139,7 @@ class MaterialByID(Resource):
 @api.route('/')
 class CreateMaterial(Resource):
 
-    #@access_required(access='CREATE_PROJECT DELETE_PROJECT')
+    #@access_required(access='CREATE_MATERIAL DELETE_MATERIAL')
     @api.doc('create new material')
     def post(self):
         app.logger.info('Create material api called')
@@ -166,7 +164,7 @@ class CreateMaterial(Resource):
 @api.route('/search/<int:page>')
 class SearchMaterial(Resource):
 
-    #@access_required(access='CREATE_PROJECT DELETE_PROJECT UPDATE_PROJECT SEARCH_PROJECT VIEW_PROJECT')
+    #@access_required(access='CREATE_MATERIAL DELETE_MATERIAL UPDATE_MATERIAL SEARCH_MATERIAL VIEW_MATERIAL')
     @api.doc('search door based on post parameters')
     def post(self, page=0):
         app.logger.info('Search material api called')

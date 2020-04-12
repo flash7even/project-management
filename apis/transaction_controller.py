@@ -9,7 +9,7 @@ from flask_restplus import Namespace, Resource
 from jwt.exceptions import *
 
 from core.project_services import find_project_list_using_search_params, get_current_date
-from core.transaction_services import cleanify_transaction_data, get_transaction_initial_time
+from core.transaction_services import get_transaction_initial_time
 
 api = Namespace('transaction', description='Namespace for transaction service')
 
@@ -240,7 +240,6 @@ class SearchTransaction(Resource):
             for hit in response['hits']['hits']:
                 transaction = hit['_source']
                 transaction['id'] = hit['_id']
-                transaction = cleanify_transaction_data(transaction)
                 transaction_list.append(transaction)
             app.logger.debug('final list: ' + str(json.dumps(transaction_list)))
             app.logger.info('Search transaction method completed')

@@ -9,7 +9,7 @@ from flask_restplus import Namespace, Resource
 from jwt.exceptions import *
 
 from core.project_services import find_project_list_using_search_params, get_current_date
-from core.bill_services import cleanify_bill_data, get_bill_initial_time
+from core.bill_services import get_bill_initial_time
 
 api = Namespace('bill', description='Namespace for bill service')
 
@@ -240,7 +240,6 @@ class SearchBill(Resource):
             for hit in response['hits']['hits']:
                 bill = hit['_source']
                 bill['id'] = hit['_id']
-                bill = cleanify_bill_data(bill)
                 bill_list.append(bill)
             app.logger.debug('final list: ' + str(json.dumps(bill_list)))
             app.logger.info('Search bill method completed')

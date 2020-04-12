@@ -11,16 +11,6 @@ _es_index = 'pms_bills'
 _es_type = '_doc'
 _es_size = 500
 
-trans_fields = ['bill_id', 'amount', 'project_name', 'updated_at', 'mode_of_payment',
-                'payment_by', 'cheque_no', 'description', 'status']
-
-
-def cleanify_bill_data(data):
-    for k in trans_fields:
-        if k not in data:
-            data[k] = 'NA'
-    return data
-
 
 def find_bill_list_using_search_params(search_param):
     app.logger.info('Search project method called')

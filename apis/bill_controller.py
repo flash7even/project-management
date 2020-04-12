@@ -10,6 +10,7 @@ from jwt.exceptions import *
 
 from core.project_services import find_project_list_using_search_params, get_current_date
 from core.bill_services import get_bill_initial_time
+from core.plibrary import find_document_id
 
 api = Namespace('bill', description='Namespace for bill service')
 
@@ -149,12 +150,7 @@ class CreateBill(Resource):
         rs = requests.session()
         data = request.get_json()
 
-        mandatory_fields = ['bill_id', 'amount', 'project_name']
-
-        for mfield in mandatory_fields:
-            if mfield not in data:
-                app.logger.warning('mandatory field missing')
-                return {'message': 'mandatory field missing'}, 403
+        data['bill_id'] = find_document_id(data['project_name'], 8, 6)
 
         project_params = {
             'project_name': data['project_name']

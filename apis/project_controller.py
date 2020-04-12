@@ -12,6 +12,7 @@ from jwt.exceptions import *
 from .auth_controller import access_required
 from core.transaction_services import find_transaction_stat
 from core.bill_services import find_bill_stat
+from core.plibrary import find_document_id
 
 api = Namespace('project', description='Namespace for project service')
 
@@ -164,6 +165,7 @@ class CreateProject(Resource):
         data = request.get_json()
         data['created_at'] = int(time.time())
         data['updated_at'] = int(time.time())
+        data['project_id'] = find_document_id(data['project_name'], 8, 4)
 
         if 'completion_date' in data:
             data['adjusted_completion_date'] = data['completion_date']

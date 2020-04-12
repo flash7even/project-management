@@ -9,6 +9,7 @@ from flask_jwt_extended.exceptions import *
 from flask_restplus import Namespace, Resource
 from jwt.exceptions import *
 from .auth_controller import access_required
+from core.plibrary import find_document_id
 
 api = Namespace('material', description='Namespace for material service')
 
@@ -148,6 +149,8 @@ class CreateMaterial(Resource):
         data = request.get_json()
         data['created_at'] = int(time.time())
         data['updated_at'] = int(time.time())
+
+        data['material_id'] = find_document_id(data['project_name'], 8, 6)
 
         post_url = 'http://{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type)
         response = rs.post(url=post_url, json=data, headers=_http_headers).json()

@@ -1,6 +1,9 @@
 {
   "dynamic" : "strict",
   "properties" : {
+    "material_id" : {
+      "type" : "keyword"
+    },
     "project_id" : {
       "type" : "keyword"
     },

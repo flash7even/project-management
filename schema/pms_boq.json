@@ -1,6 +1,9 @@
 {
   "dynamic" : "strict",
   "properties" : {
+    "boq_id" : {
+      "type" : "keyword"
+    },
     "project_id" : {
       "type" : "keyword"
     },

@@ -1,35 +1,41 @@
 {
   "dynamic" : "strict",
   "properties" : {
-    "amount" : {
-      "type" : "double"
-    },
-    "cheque_no" : {
-      "type" : "keyword"
-    },
-    "currency" : {
-      "type" : "keyword"
-    },
-    "description" : {
-      "type" : "text"
-    },
-    "mode_of_payment" : {
-      "type" : "text"
-    },
-    "payment_by" : {
-      "type" : "keyword"
-    },
-    "payment_date" : {
-      "type" : "date"
-    },
     "project_id" : {
       "type" : "keyword"
     },
     "project_name" : {
       "type" : "keyword"
     },
-    "remarks" : {
+    "payment_date" : {
+      "type" : "date"
+    },
+    "transaction_type" : {
+      "type" : "keyword"
+    },
+    "description" : {
       "type" : "text"
+    },
+    "amount" : {
+      "type" : "double"
+    },
+    "mode_of_payment" : {
+      "type" : "text"
+    },
+    "bank_name" : {
+      "type" : "keyword"
+    },
+    "account_no" : {
+      "type" : "keyword"
+    },
+    "payment_by" : {
+      "type" : "keyword"
+    },
+    "payment_to" : {
+      "type" : "keyword"
+    },
+    "voucher_no" : {
+      "type" : "keyword"
     },
     "status" : {
       "type" : "keyword"
@@ -37,11 +43,14 @@
     "active_status" : {
       "type" : "keyword"
     },
-    "transaction_id" : {
-      "type" : "keyword"
+    "reference" : {
+      "type" : "text"
     },
-    "voucher_no" : {
-      "type" : "keyword"
+    "vat" : {
+      "type" : "text"
+    },
+    "ait" : {
+      "type" : "text"
     },
     "updated_at" : {
       "type" : "date"

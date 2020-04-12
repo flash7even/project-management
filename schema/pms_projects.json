@@ -1,19 +1,34 @@
 {
   "dynamic" : "strict",
   "properties" : {
-    "commencement_date" : {
-      "type" : "date"
-    },
-    "description" : {
-      "type" : "text"
-    },
-    "notes" : {
-      "type" : "text"
-    },
     "project_name" : {
       "type" : "keyword"
     },
     "project_value" : {
+      "type" : "float"
+    },
+    "department" : {
+      "type" : "text"
+    },
+    "noa_date" : {
+      "type" : "date"
+    },
+    "contract_signing_date" : {
+      "type" : "date"
+    },
+    "commencement_date" : {
+      "type" : "date"
+    },
+    "completion_date" : {
+      "type" : "date"
+    },
+    "adjusted_completion_date" : {
+      "type" : "date"
+    },
+    "handover_date" : {
+      "type" : "date"
+    },
+    "remarks" : {
       "type" : "text"
     },
     "status" : {
@@ -21,9 +36,6 @@
     },
     "active_status" : {
       "type" : "keyword"
-    },
-    "termination_date" : {
-      "type" : "date"
     },
     "updated_at" : {
       "type" : "date"

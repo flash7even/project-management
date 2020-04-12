@@ -1,5 +1,6 @@
 import time
 import json
+import datetime
 import requests
 from flask import current_app as app
 from flask import request
@@ -113,9 +114,22 @@ class ProjectByID(Resource):
                 for key in post_data:
                     if post_data[key]:
                      data[key] = post_data[key]
+
+                if 'time_extension' in post_data and post_data['time_extension']:
+                    time_extension = int(post_data['time_extension'])
+                    updated_date = datetime.datetime.strptime(data['adjusted_completion_date'], '%Y-%m-%d')
+                    print(updated_date, type(updated_date))
+                    updated_date = updated_date.date()
+                    print(updated_date, type(updated_date))
+                    updated_date = updated_date + datetime.timedelta(days=time_extension)
+                    data['adjusted_completion_date'] = str(updated_date)
+
+                data.pop('time_extension', None)
+
                 #data['updated_by'] = current_user
                 data['updated_at'] = int(time.time())
                 response = rs.put(url=search_url, json=data, headers=_http_headers).json()
+                print(response)
                 if 'result' in response:
                     app.logger.info('Update project_details method completed')
                     return response['result'], 200
@@ -150,6 +164,9 @@ class CreateProject(Resource):
         data = request.get_json()
         data['created_at'] = int(time.time())
         data['updated_at'] = int(time.time())
+
+        if 'completion_date' in data:
+            data['adjusted_completion_date'] = data['completion_date']
 
         post_url = 'http://{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type)
         response = rs.post(url=post_url, json=data, headers=_http_headers).json()

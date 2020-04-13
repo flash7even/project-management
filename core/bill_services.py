@@ -80,7 +80,7 @@ def find_bill_stat(project_id):
         for hit in response['hits']['hits']:
             bill_count += 1
             data = hit['_source']
-            bill_amount += float(data['amount'])
+            bill_amount += float(data['amount_received'])
         return {
             'bill_count': bill_count,
             'bill_amount': bill_amount

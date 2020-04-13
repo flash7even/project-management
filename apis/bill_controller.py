@@ -213,8 +213,8 @@ class SearchBill(Resource):
             if f == 'mode_of_payment' and param[f] != 'ALL':
                 must.append({'match': {f: param[f]}})
 
-        must.append({"range": {"payment_date": {"gte": payment_date_start, "lte": payment_date_end}}})
-        must.append({"range": {"amount": {"gte": amount_min, "lte": amount_max}}})
+        must.append({"range": {"submission_date": {"gte": payment_date_start, "lte": payment_date_end}}})
+        must.append({"range": {"amount_received": {"gte": amount_min, "lte": amount_max}}})
 
         if len(must) > 0:
             query_json = {'query': {'bool': {'must': must}}}
@@ -225,7 +225,7 @@ class SearchBill(Resource):
         if 'sort_by' in param and param['sort_by'] != 'none':
             query_json['sort'] = [{param['sort_by']: {'order': param['sort_order']}}]
 
-        query_json['sort'] = [{'payment_date': {'order': 'asc'}}]
+        query_json['sort'] = [{'submission_date': {'order': 'asc'}}]
         app.logger.debug('query_json: ' + str(json.dumps(query_json)))
 
         search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_index, _es_type)
@@ -275,7 +275,7 @@ class StatsPerWeek(Resource):
                 for hit in response['hits']['hits']:
                     bill = hit['_source']
                     no_of_tx += 1
-                    total_amount += float(bill['amount'])
+                    total_amount += float(bill['amount_received'])
                 data = {}
                 data["total_bill"] = no_of_tx
                 data["total_amount_of_bills"] = total_amount
@@ -338,7 +338,7 @@ class StatsPerWeek(Resource):
 
                 if 'hits' in response and 'aggregations' in response:
                     pdata = {
-                        'amount_sum': response['aggregations']['amount']['value']
+                        'amount_sum': response['aggregations']['amount_received']['value']
                     }
                     project_data_list.append(pdata)
                 else:

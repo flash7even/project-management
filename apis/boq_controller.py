@@ -147,6 +147,8 @@ class CreateBOQ(Resource):
         #current_user = get_jwt_identity().get('id')
         rs = requests.session()
         data = request.get_json()
+
+        app.logger.debug("CREATE BOQ DATA: " + json.dumps(data))
         data['created_at'] = int(time.time())
         data['updated_at'] = int(time.time())
 

@@ -34,7 +34,7 @@
     "issue_date" : {
       "type" : "date"
     },
-    "issue_quanitity" : {
+    "issue_quantity" : {
       "type" : "float"
     },
     "issue_voucher" : {

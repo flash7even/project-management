@@ -1,5 +1,7 @@
 import time
 import json
+from datetime import date
+import datetime
 import requests
 from flask import current_app as app
 from flask import request
@@ -10,6 +12,7 @@ from flask_restplus import Namespace, Resource
 from jwt.exceptions import *
 from .auth_controller import access_required
 from core.plibrary import find_document_id
+from core.material_services import get_material_report
 
 api = Namespace('boq', description='Namespace for boq service')
 
@@ -176,14 +179,25 @@ class SearchBOQ(Resource):
         param = request.get_json()
         query_json = {'query': {'match_all': {}}}
         must = []
-        for fields in param:
-            must.append({'match': {fields: param[fields]}})
+        issue_date_start = "1970-01-01"
+        issue_date_end = str(date.today())
+
+        for f in param:
+            if f == 'project_name' and param[f] != 'ALL':
+                must.append({'term': {f: param[f]}})
+            if f == 'issue_date_start' and param[f]:
+                issue_date_start = param[f]
+            if f == 'issue_date_end' and param[f]:
+                issue_date_end = param[f]
+
+        must.append({"range": {"issue_date": {"gte": issue_date_start, "lte": issue_date_end}}})
 
         if len(must) > 0:
             query_json = {'query': {'bool': {'must': must}}}
 
         query_json['from'] = page * _es_size
         query_json['size'] = _es_size
+        print('query_json: ' + str(json.dumps(query_json)))
         search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_index, _es_type)
 
         response = requests.session().post(url=search_url, json=query_json, headers=_http_headers).json()
@@ -194,6 +208,61 @@ class SearchBOQ(Resource):
                 boq['id'] = hit['_id']
                 boq_list.append(boq)
             app.logger.info('Search boq api completed')
+            print('BOQ List: ' + str(json.dumps(boq_list)))
+            return boq_list, 200
+        app.logger.error('Elasticsearch down, response: ' + str(response))
+        return {'message': 'internal server error'}, 500
+
+
+@api.route('/report', defaults={'page': 0})
+@api.route('/report/<int:page>')
+class SearchBOQ(Resource):
+
+    #@access_required(access='CREATE_BOQ DELETE_BOQ UPDATE_BOQ SEARCH_BOQ VIEW_BOQ')
+    @api.doc('search door based on post parameters')
+    def post(self, page=0):
+        app.logger.info('Search boq report api called')
+        param = request.get_json()
+        query_json = {'query': {'match_all': {}}}
+        must = []
+        issue_date_start = "1970-01-01"
+        issue_date_end = str(date.today())
+
+        for f in param:
+            if f == 'project_name' and param[f] != 'ALL':
+                must.append({'term': {f: param[f]}})
+            if f == 'issue_date_start' and param[f]:
+                issue_date_start = param[f]
+            if f == 'issue_date_end' and param[f]:
+                issue_date_end = param[f]
+
+        must.append({"range": {"issue_date": {"gte": issue_date_start, "lte": issue_date_end}}})
+
+        if len(must) > 0:
+            query_json = {'query': {'bool': {'must': must}}}
+
+        query_json['from'] = page * _es_size
+        query_json['size'] = _es_size
+        print('query_json: ' + str(json.dumps(query_json)))
+        search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_index, _es_type)
+
+        response = requests.session().post(url=search_url, json=query_json, headers=_http_headers).json()
+        if 'hits' in response:
+            boq_list = []
+            for hit in response['hits']['hits']:
+                boq = hit['_source']
+                material_report = get_material_report(boq['material_name'], boq['project_name'])
+                boq['boq_set_total_price'] = boq['total_price']
+                boq.pop('total_price', None)
+                boq['boq_set_total_quantity'] = boq['quantity']
+                boq.pop('quantity', None)
+
+                for f in material_report:
+                    boq[f] = material_report[f]
+
+                boq_list.append(boq)
+            app.logger.info('Search boq api completed')
+            print('BOQ List: ' + str(json.dumps(boq_list)))
             return boq_list, 200
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return {'message': 'internal server error'}, 500

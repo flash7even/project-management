@@ -11,7 +11,7 @@
       "type" : "keyword"
     },
     "material_name" : {
-      "type" : "text"
+      "type" : "keyword"
     },
     "unit" : {
       "type" : "text"
@@ -36,6 +36,9 @@
     },
     "remarks" : {
       "type" : "text"
+    },
+    "reference" : {
+      "type" : "keyword"
     },
     "created_at" : {
       "type" : "long"

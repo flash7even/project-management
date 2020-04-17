@@ -7,6 +7,12 @@
     "project_id" : {
       "type" : "keyword"
     },
+    "material_id" : {
+      "type" : "keyword"
+    },
+    "material_name" : {
+      "type" : "keyword"
+    },
     "project_name" : {
       "type" : "keyword"
     },

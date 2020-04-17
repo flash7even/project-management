@@ -19,6 +19,8 @@ _es_index = 'pms_materials'
 _es_type = '_doc'
 _es_size = 100
 
+ENTRY = 'ENTRY'
+STOCK = 'STOCK'
 
 @api.errorhandler(NoAuthorizationError)
 def handle_auth_error(e):
@@ -174,17 +176,23 @@ class SearchMaterial(Resource):
         param = request.get_json()
         query_json = {'query': {'match_all': {}}}
         must = []
-        for fields in param:
-            must.append({'match': {fields: param[fields]}})
+        keyword_fields = ['reference', 'project_id', 'project_name', 'material_id', 'material_name']
+        for f in param:
+            if f in keyword_fields:
+                must.append({'term': {f: param[f]}})
+            else:
+                must.append({'match': {f: param[f]}})
 
         if len(must) > 0:
             query_json = {'query': {'bool': {'must': must}}}
 
         query_json['from'] = page * _es_size
         query_json['size'] = _es_size
+        app.logger.debug('Mat search query_json: ' + json.dumps(query_json))
         search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_index, _es_type)
 
         response = requests.session().post(url=search_url, json=query_json, headers=_http_headers).json()
+        app.logger.debug('Mat search response: ' + json.dumps(response))
         if 'hits' in response:
             material_list = []
             for hit in response['hits']['hits']:
@@ -195,4 +203,3 @@ class SearchMaterial(Resource):
             return material_list, 200
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return {'message': 'internal server error'}, 500
-

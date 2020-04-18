@@ -12,17 +12,23 @@ _es_type = '_doc'
 _es_size = 500
 
 
-def find_bill_list_using_search_params(search_param):
+def find_bill_list_using_search_params(param):
     app.logger.info('Search project method called')
     rs = requests.session()
     query_json = {'query': {'match_all': {}}}
     must = []
-    keyword_fields = []
-    for field in search_param:
-        if field in keyword_fields:
-            must.append({'term': {field: search_param[field]}})
-        else:
-            must.append({'match': {field: search_param[field]}})
+    payment_date_start = "1970-01-01"
+    payment_date_end = str(date.today())
+
+    for f in param:
+        if f == 'project_name' and param[f] != 'ALL':
+            must.append({'term': {f: param[f]}})
+        if f == 'payment_date_start' and param[f]:
+            payment_date_start = param[f]
+        if f == 'payment_date_end' and param[f]:
+            payment_date_end = param[f]
+
+    must.append({"range": {"submission_date": {"gte": payment_date_start, "lte": payment_date_end}}})
 
     if len(must) > 0:
         query_json = {'query': {'bool': {'must': must}}}
@@ -87,3 +93,27 @@ def find_bill_stat(project_id):
         }
     app.logger.error('Elasticsearch down, response: ' + str(response))
     return None
+
+
+def find_bill_balance_sheet(search_param):
+    bill_list = find_bill_list_using_search_params(search_param)
+
+    bill_sheet = {
+        'advanced_bill': 0,
+        'running_bill': 0,
+        'adjustment_bill': 0,
+        'final_bill': 0,
+    }
+
+    for tran in bill_list:
+        if tran.get('bill_type', '') == 'Advanced':
+            bill_sheet['advanced_bill'] += float(tran['amount_received'])
+        if tran.get('bill_type', '') == 'Running':
+            bill_sheet['running_bill'] += float(tran['amount_received'])
+        if tran.get('bill_type', '') == 'Adjustment':
+            bill_sheet['adjustment_bill'] += float(tran['amount_received'])
+        if tran.get('bill_type', '') == 'Final':
+            bill_sheet['final_bill'] += float(tran['amount_received'])
+
+    bill_sheet['total_bill'] = bill_sheet['advanced_bill'] + bill_sheet['running_bill'] + bill_sheet['adjustment_bill'] + bill_sheet['final_bill']
+    return bill_sheet

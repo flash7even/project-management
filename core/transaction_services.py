@@ -12,17 +12,23 @@ _es_type = '_doc'
 _es_size = 500
 
 
-def find_transaction_list_using_search_params(search_param):
+def find_transaction_list_using_search_params(param):
     app.logger.info('Search project method called')
     rs = requests.session()
     query_json = {'query': {'match_all': {}}}
     must = []
-    keyword_fields = []
-    for field in search_param:
-        if field in keyword_fields:
-            must.append({'term': {field: search_param[field]}})
-        else:
-            must.append({'match': {field: search_param[field]}})
+    payment_date_start = "1970-01-01"
+    payment_date_end = str(date.today())
+
+    for f in param:
+        if f == 'project_name' and param[f] != 'ALL':
+            must.append({'term': {f: param[f]}})
+        if f == 'payment_date_start' and param[f]:
+            payment_date_start = param[f]
+        if f == 'payment_date_end' and param[f]:
+            payment_date_end = param[f]
+
+    must.append({"range": {"payment_date": {"gte": payment_date_start, "lte": payment_date_end}}})
 
     if len(must) > 0:
         query_json = {'query': {'bool': {'must': must}}}
@@ -87,3 +93,21 @@ def find_transaction_stat(project_id):
         }
     app.logger.error('Elasticsearch down, response: ' + str(response))
     return None
+
+
+def find_transaction_balance_sheet(search_param):
+    transaction_list = find_transaction_list_using_search_params(search_param)
+
+    tran_sheet = {
+        'debit_amount': 0,
+        'credit_amount': 0
+    }
+
+    for tran in transaction_list:
+        if tran.get('transaction_type', '') == 'Debit':
+            tran_sheet['debit_amount'] += float(tran['amount'])
+        if tran.get('transaction_type', '') == 'Credit':
+            tran_sheet['credit_amount'] += float(tran['amount'])
+
+    tran_sheet['transaction_balance'] = tran_sheet['credit_amount'] - tran_sheet['debit_amount']
+    return tran_sheet

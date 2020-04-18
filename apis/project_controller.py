@@ -10,8 +10,8 @@ from flask_jwt_extended.exceptions import *
 from flask_restplus import Namespace, Resource
 from jwt.exceptions import *
 from .auth_controller import access_required
-from core.transaction_services import find_transaction_stat
-from core.bill_services import find_bill_stat
+from core.transaction_services import find_transaction_stat, find_transaction_balance_sheet
+from core.bill_services import find_bill_stat, find_bill_balance_sheet
 from core.plibrary import find_document_id
 
 api = Namespace('project', description='Namespace for project service')
@@ -261,3 +261,20 @@ class SearchProjectStat(Resource):
             return project_list, 200
         app.logger.error('Elasticsearch down, response: ' + str(response))
         return {'message': 'internal server error'}, 500
+
+
+@api.route('/balance/sheet', defaults={'page': 0})
+@api.route('/balance/sheet/<int:page>')
+class SearchProjectStat(Resource):
+
+    #@access_required(access='CREATE_PROJECT DELETE_PROJECT UPDATE_PROJECT SEARCH_PROJECT VIEW_PROJECT')
+    @api.doc('search door based on post parameters')
+    def post(self, page=0):
+        app.logger.info('Project balance sheet method called')
+        param = request.get_json()
+        data = {
+            'transaction_sheet': find_transaction_balance_sheet(param),
+            'bill_sheet': find_bill_balance_sheet(param)
+        }
+        app.logger.error('Project balance sheet method completed')
+        return data, 200

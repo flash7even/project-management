@@ -128,7 +128,7 @@ class ProjectByID(Resource):
                 data.pop('time_extension', None)
 
                 #data['updated_by'] = current_user
-                data['updated_at'] = int(time.time())
+                data['updated_at'] = str(datetime.date.today())
                 response = rs.put(url=search_url, json=data, headers=_http_headers).json()
                 print(response)
                 if 'result' in response:
@@ -163,8 +163,8 @@ class CreateProject(Resource):
         #current_user = get_jwt_identity().get('id')
         rs = requests.session()
         data = request.get_json()
-        data['created_at'] = int(time.time())
-        data['updated_at'] = int(time.time())
+        data['created_at'] = str(datetime.date.today())
+        data['updated_at'] = str(datetime.date.today())
         data['project_id'] = find_document_id(data['project_name'], 8, 4)
 
         if 'completion_date' in data:
@@ -200,6 +200,7 @@ class SearchProject(Resource):
 
         query_json['from'] = page * _es_size
         query_json['size'] = _es_size
+        query_json['sort'] = [{'updated_at': {'order': 'desc'}}]
         search_url = 'http://{}/{}/{}/_search'.format(app.config['ES_HOST'], _es_index, _es_type)
 
         response = requests.session().post(url=search_url, json=query_json, headers=_http_headers).json()

@@ -59,7 +59,7 @@
       "type" : "keyword"
     },
     "created_at" : {
-      "type" : "long"
+      "type" : "date"
     },
     "created_by" : {
       "type" : "keyword"

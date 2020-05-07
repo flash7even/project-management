@@ -1,5 +1,6 @@
 import time
 import json
+import datetime
 import requests
 from flask import current_app as app
 from flask import request
@@ -115,7 +116,7 @@ class MaterialByID(Resource):
                     if post_data[key]:
                      data[key] = post_data[key]
                 #data['updated_by'] = current_user
-                data['updated_at'] = int(time.time())
+                data['updated_at'] = str(datetime.date.today())
                 response = rs.put(url=search_url, json=data, headers=_http_headers).json()
                 if 'result' in response:
                     app.logger.info('Update material_details api completed')
@@ -149,8 +150,8 @@ class CreateMaterial(Resource):
         #current_user = get_jwt_identity().get('id')
         rs = requests.session()
         data = request.get_json()
-        data['created_at'] = int(time.time())
-        data['updated_at'] = int(time.time())
+        data['created_at'] = str(datetime.date.today())
+        data['updated_at'] = str(datetime.date.today())
 
         data['material_id'] = find_document_id(data['project_name'], 8, 6)
 

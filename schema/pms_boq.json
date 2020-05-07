@@ -50,13 +50,13 @@
       "type" : "float"
     },
     "created_at" : {
-      "type" : "long"
+      "type" : "date"
     },
     "created_by" : {
       "type" : "keyword"
     },
     "updated_at" : {
-      "type" : "long"
+      "type" : "date"
     },
     "updated_by" : {
       "type" : "keyword"

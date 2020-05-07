@@ -116,7 +116,7 @@ class BOQByID(Resource):
                     if post_data[key]:
                      data[key] = post_data[key]
                 #data['updated_by'] = current_user
-                data['updated_at'] = int(time.time())
+                data['updated_at'] = str(datetime.date.today())
                 response = rs.put(url=search_url, json=data, headers=_http_headers).json()
                 if 'result' in response:
                     app.logger.info('Update boq_details api completed')
@@ -152,8 +152,8 @@ class CreateBOQ(Resource):
         data = request.get_json()
 
         app.logger.debug("CREATE BOQ DATA: " + json.dumps(data))
-        data['created_at'] = int(time.time())
-        data['updated_at'] = int(time.time())
+        data['created_at'] = str(datetime.date.today())
+        data['updated_at'] = str(datetime.date.today())
 
         data['boq_id'] = find_document_id(data['project_name'], 8, 6)
 

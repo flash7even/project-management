@@ -1,5 +1,6 @@
 import time
 import json
+import datetime
 import requests
 from flask import current_app as app
 from flask import request
@@ -114,7 +115,7 @@ class PaymentMethodByID(Resource):
                     if post_data[key]:
                      data[key] = post_data[key]
                 #data['updated_by'] = current_user
-                data['updated_at'] = int(time.time())
+                data['updated_at'] = str(datetime.date.today())
                 response = rs.put(url=search_url, json=data, headers=_http_headers).json()
                 if 'result' in response:
                     app.logger.info('Update payment_method_details method completed')
@@ -148,8 +149,8 @@ class CreatePaymentMethod(Resource):
         #current_user = get_jwt_identity().get('id')
         rs = requests.session()
         data = request.get_json()
-        data['created_at'] = int(time.time())
-        data['updated_at'] = int(time.time())
+        data['created_at'] = str(datetime.date.today())
+        data['updated_at'] = str(datetime.date.today())
 
         post_url = 'http://{}/{}/{}'.format(app.config['ES_HOST'], _es_index, _es_type)
         response = rs.post(url=post_url, json=data, headers=_http_headers).json()

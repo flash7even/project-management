@@ -1,5 +1,6 @@
 import json
 import time
+import datetime
 
 import requests
 from flask import current_app as app
@@ -165,7 +166,7 @@ class RoleByID(Resource):
                     else:
                         data[key] = value
                 data['updated_by'] = current_user
-                data['updated_at'] = int(time.time())
+                data['updated_at'] = str(datetime.date.today())
                 response = rs.put(url=search_url, json=data, headers=_http_headers).json()
                 if 'result' in response:
                     app.logger.info('Update user role service completed')
@@ -207,9 +208,9 @@ class CreateRole(Resource):
                 return {"message": "required fields are missing"}, 400
 
         data['created_by'] = current_user
-        data['created_at'] = int(time.time())
+        data['created_at'] = str(datetime.date.today())
         data['updated_by'] = current_user
-        data['updated_at'] = int(time.time())
+        data['updated_at'] = str(datetime.date.today())
         if 'method_access' not in data:
             data['method_access'] = get_customized_access(role_name)
         else:
